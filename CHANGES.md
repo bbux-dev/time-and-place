@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1 — 2026-11-15
+
+- Treat Maps lookups that fill the place name as successful, without a warning banner when Google
+  blocks additional metadata. Error banners remain for lookups that fail to fill a place.
+
 ## v1.0 — 2026-11-15
 
 First release of **Time and Place**, a group trip activity coordinator.

@@ -569,10 +569,9 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
           for (const { id } of ACTIVITY_TYPES) {
             if (typeof place[id] === "boolean") form.elements[id].checked = place[id];
           }
-          if (place.warning) showFormError(form, place.warning);
           status.textContent = place.category
             ? `Found ${place.category}. Review the details and activity type, then save.`
-            : "Place name found. Check the address and activity type before saving.";
+            : "Place name filled from Maps.";
         } catch (error) {
           status.textContent = "";
           if (overlay.open && overlay.firstElementChild === form) {
