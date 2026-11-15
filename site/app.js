@@ -12,6 +12,7 @@ import {
   fmtDateTime,
   fmtDay,
   fmtTime,
+  localDate,
   mapsUrl,
   randomId,
   removePersonFromTrip,
@@ -166,8 +167,8 @@ function whoLine(activity, members) {
     : `${going.length} of ${members.length} · <span class="muted">all but ${names(notGoing)}</span>`;
 }
 
-function activityRow(activity, members) {
-  return `<button class="act" data-action="edit-activity" data-id="${esc(activity.id)}">
+function activityRow(activity, members, when = "") {
+  return `<button class="act${when}" data-action="edit-activity" data-id="${esc(activity.id)}">
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
     <div>
       <div class="name">${esc(activity.title)} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
@@ -179,11 +180,14 @@ function activityRow(activity, members) {
 
 function tripView(trip) {
   const members = tripPeople(trip, store.people);
+  const today = localDate();
   const days = activitiesByDay(trip.activities)
-    .map(
-      (day) =>
-        `<div class="day">${esc(fmtDay(day.date))}</div>${day.items.map((a) => activityRow(a, members)).join("")}`,
-    )
+    .map((day) => {
+      const when = day.date === today ? " today" : "";
+      return `<div class="day${when}">${esc(fmtDay(day.date))}${when ? ` <span class="tag">Today</span>` : ""}</div>${day.items
+        .map((a) => activityRow(a, members, when))
+        .join("")}`;
+    })
     .join("");
   return `<div class="top">
       <a class="back btn" href="#/" aria-label="All trips" style="padding:0;line-height:38px">←</a>

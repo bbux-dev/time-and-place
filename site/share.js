@@ -8,6 +8,9 @@ import {
   fmtDateTime,
   fmtDay,
   fmtTime,
+  liveStatus,
+  localDate,
+  localTime,
   mapsUrl,
 } from "./domain.js";
 
@@ -57,7 +60,9 @@ function lodgingCard(lodging) {
   return `<div class="card"><div class="head"><span class="label">Where we're staying</span></div>${items}</div>`;
 }
 
-function activityRow(activity) {
+const LIVE = { now: "Now", next: "Up next" };
+
+function activityRow(activity, when, live) {
   const { going, notGoing, everyone } = attendance(activity, data.people);
   const mine = !me || activity.attendeeIds.includes(me);
   const names = (list) => esc(list.map((p) => p.name).join(", "));
@@ -69,10 +74,11 @@ function activityRow(activity) {
         ? names(going)
         : `Everyone <span class="muted">except ${names(notGoing)}</span>`;
   }
-  return `<div class="act${mine ? "" : " dim"}">
+  return `<div class="act${mine ? "" : " dim"}${when}">
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
     <div>
       <div class="name">${esc(activity.title)}
+        ${live ? `<span class="tag solid">${LIVE[live]}</span>` : ""}
         ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}
         ${mine ? "" : `<span class="tag off">Not you</span>`}</div>
       ${activity.location ? `<div class="muted">${esc(activity.location)}</div>` : ""}
@@ -84,9 +90,16 @@ function activityRow(activity) {
 
 function render() {
   const { trip, people } = data;
+  const today = localDate();
+  const live = liveStatus(trip.activities, today, localTime(), me);
   const mineCount = me ? trip.activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
   const days = activitiesByDay(trip.activities)
-    .map((day) => `<div class="day">${esc(fmtDay(day.date))}</div>${day.items.map(activityRow).join("")}`)
+    .map((day) => {
+      const when = day.date === today ? " today" : day.date < today ? " past" : "";
+      return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
+        .map((a) => activityRow(a, when, live.get(a.id)))
+        .join("")}`;
+    })
     .join("");
   const pills = people.length
     ? `<div class="card">
@@ -139,6 +152,11 @@ try {
       /* no saved choice */
     }
     render();
+    // Returning visitors land on today. First-time visitors start at the top to pick their name.
+    if (me) screen.querySelector(".day.today")?.scrollIntoView({ block: "start" });
+    // Keep "Today", "Now" and "Up next" honest while the page stays open.
+    setInterval(render, 60_000);
+    document.addEventListener("visibilitychange", () => document.hidden || render());
   }
 } catch {
   screen.innerHTML = `<p class="empty">Couldn't load the itinerary. Check your connection and reload.</p>`;

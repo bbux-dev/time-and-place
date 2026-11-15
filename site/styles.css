@@ -361,6 +361,24 @@ a {
   font-size: 14px;
   margin-top: 4px;
 }
+/* Today stands out; days that are over step back. */
+.day.today {
+  color: var(--accent);
+  font-size: 17px;
+}
+.act.today {
+  box-shadow:
+    inset 5px 0 0 var(--accent),
+    var(--shadow);
+}
+.day.past,
+.act.past {
+  opacity: 0.55;
+}
+.tag.solid {
+  background: var(--accent);
+  color: var(--on-accent);
+}
 .act.dim {
   opacity: 0.5;
   box-shadow: none;

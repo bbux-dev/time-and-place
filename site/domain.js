@@ -115,6 +115,39 @@ export function activitiesByDay(activities) {
   return days;
 }
 
+const pad2 = (n) => String(n).padStart(2, "0");
+
+/** Today's date on this device, as "YYYY-MM-DD". On the trip, phones are on trip time. */
+export function localDate(now = new Date()) {
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+/** The time on this device, as "HH:MM". */
+export function localTime(now = new Date()) {
+  return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+}
+
+/**
+ * Which of today's activities are happening "now" or are "next", as a Map of id -> label.
+ * With `me` set, only that person's activities count. Untimed activities are never labelled.
+ */
+export function liveStatus(activities, today, time, me = null) {
+  const status = new Map();
+  const mine = activities.filter((a) => a.date === today && (!me || a.attendeeIds.includes(me)));
+  let foundNext = false;
+  for (const activity of activitiesByDay(mine).flatMap((day) => day.items)) {
+    if (!activity.time) continue;
+    if (activity.time > time) {
+      if (!foundNext) status.set(activity.id, "next");
+      foundNext = true;
+    } else if (activity.endTime && (activity.endTime >= time || activity.endTime < activity.time)) {
+      // Started, and it ends later today or runs past midnight.
+      status.set(activity.id, "now");
+    }
+  }
+  return status;
+}
+
 /** Who is and is not going, in trip order. */
 export function attendance(activity, members) {
   const going = members.filter((p) => activity.attendeeIds.includes(p.id));

@@ -12,6 +12,9 @@ import {
   fmtDay,
   fmtTime,
   isValidStore,
+  liveStatus,
+  localDate,
+  localTime,
   randomId,
   removePersonFromTrip,
   sharedView,
@@ -131,4 +134,30 @@ test("formatting", () => {
   assert.equal(fmtDateRange("2027-06-12", "2027-06-18"), "Sat, Jun 12 – Fri, Jun 18");
   assert.equal(fmtDateRange("2027-06-12", "2027-06-12"), "Sat, Jun 12");
   assert.equal(fmtDateTime("2027-06-12T16:00"), "Sat, Jun 12 · 4:00 PM");
+});
+
+test("today's date and time come from the device clock", () => {
+  const now = new Date(2027, 5, 3, 9, 5);
+  assert.equal(localDate(now), "2027-06-03");
+  assert.equal(localTime(now), "09:05");
+});
+
+test("today's activities are labelled now and up next", () => {
+  const day = "2027-06-13";
+  const acts = [
+    { id: "pool", title: "Pool", date: day, time: "", attendeeIds: ["kid"] },
+    { id: "brunch", title: "Brunch", date: day, time: "10:00", endTime: "11:00", attendeeIds: ["dad", "kid"] },
+    { id: "show", title: "Show", date: day, time: "19:00", endTime: "20:30", attendeeIds: ["dad", "kid"] },
+    { id: "bar", title: "Bar", date: day, time: "21:30", endTime: "00:30", attendeeIds: ["dad"] },
+    { id: "later", title: "Tomorrow", date: "2027-06-14", time: "09:00", attendeeIds: ["dad"] },
+  ];
+  const at = (time, me) => Object.fromEntries(liveStatus(acts, day, time, me));
+  assert.deepEqual(at("08:00"), { brunch: "next" });
+  assert.deepEqual(at("10:30"), { brunch: "now", show: "next" });
+  assert.deepEqual(at("12:00"), { show: "next" }, "finished activities lose their label");
+  assert.deepEqual(at("19:15"), { show: "now", bar: "next" });
+  assert.deepEqual(at("23:00"), { bar: "now" }, "running past midnight still counts as now");
+  assert.deepEqual(at("19:15", "kid"), { show: "now" }, "only the chosen person's activities count");
+  assert.deepEqual(at("12:00", "kid"), { show: "next" });
+  assert.deepEqual(Object.fromEntries(liveStatus(acts, "2027-06-20", "12:00")), {}, "nothing outside today");
 });
