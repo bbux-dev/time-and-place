@@ -1,5 +1,8 @@
 node_modules/
+.sst/
 .env
+.env.*
+!.env.example
 .idea/
 data/
 test-results/

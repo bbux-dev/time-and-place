@@ -3,7 +3,8 @@
 Plan a group trip: who is coming, where you are staying, and who is going to which activity.
 One admin edits behind a login; everyone else gets a read-only share link.
 
-Local prototype. Plain HTML, CSS and JavaScript with no build step and no dependencies.
+Plain HTML, CSS and JavaScript with no build step. Runs locally on Node, and on Cloudflare at
+**https://trips.bxtn.dev** (a Worker plus one JSON object in R2).
 
 ## Run
 
@@ -28,12 +29,25 @@ pnpm check      # syntax
 - **PWA**: both pages can be added to a phone's home screen. A shared itinerary installs as its own app and,
   once it has loaded, still opens without signal (showing the last copy). The admin page is never cached.
   Offline support needs HTTPS or `localhost`, so it starts working for phones once the site is hosted.
-- **Data**: one JSON file, `data/store.json` (git-ignored), read and written whole. Each save carries a revision
-  number, so a stale tab cannot overwrite newer changes.
+- **Data**: one JSON document, read and written whole. Locally it is `data/store.json` (git-ignored); hosted it is
+  `store.json` in a private R2 bucket, with a daily backup copy. Each save carries a revision number, so a stale
+  tab cannot overwrite newer changes.
+
+## Hosting
+
+```sh
+pnpm deploy
+```
+
+Cloudflare only, through SST: one Worker on `trips.bxtn.dev` and one R2 bucket. See
+[deployment and recovery](docs/DEPLOYMENT.md) for the token scopes, first-time setup and backups.
 
 ## Structure
 
-- `server.mjs`: static files, login, share links, and `fileStorage` (the piece to swap for an R2/S3 object).
+- `infra/handler.js`: the backend (login, share links, saving), shared by both runtimes.
+- `infra/worker.js`: Cloudflare Worker entry, storing to R2.
+- `server.mjs`: local Node entry, storing to a file.
+- `sst.config.ts`, `scripts/`: infrastructure, preflight, deploy and hosted checks.
 - `site/domain.js`: trip rules and formatting, shared by both pages and the server.
 - `site/app.js` + `index.html`: the admin page.
 - `site/share.js` + `share.html`: the shared itinerary.
