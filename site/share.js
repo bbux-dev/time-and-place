@@ -30,7 +30,6 @@ navigator.serviceWorker?.register("/share-sw.js", { scope: "/s/" }).catch(() => 
 let data = null;
 let me = null; // person id, or null for "everyone"
 let offline = false;
-const expanded = new Set(); // activity ids left open, kept across the minute-by-minute redraw
 
 function remember(id) {
   try {
@@ -78,24 +77,22 @@ function activityRow(activity, when, live) {
         : `Everyone <span class="muted">except ${names(notGoing)}</span>`;
   }
   const map = webLink(activity.mapUrl);
-  const body = `
+  // With a map link, the place name is the link. Without a place name it reads "Map".
+  const place = map
+    ? `<a href="${esc(map)}" target="_blank" rel="noopener noreferrer">${esc(activity.location || "Map")}</a>`
+    : esc(activity.location);
+  return `<div class="act${mine ? "" : " dim"}${when}">
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
     <div>
       <div class="name">${esc(activity.title)}
         ${live ? `<span class="tag solid">${LIVE[live]}</span>` : ""}
         ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}
         ${mine ? "" : `<span class="tag off">Not you</span>`}</div>
-      ${activity.location ? `<div class="muted">${esc(activity.location)}</div>` : ""}
+      ${place ? `<div class="muted">${place}</div>` : ""}
       <div class="who">${who}</div>
       ${activity.notes ? `<div class="pre muted" style="margin-top:4px">${esc(activity.notes)}</div>` : ""}
-    </div>`;
-  const classes = `act${mine ? "" : " dim"}${when}`;
-  if (!map) return `<div class="${classes}">${body}</div>`;
-  // With a map link the card expands: tap it to reveal the link.
-  return `<details class="${classes}" data-id="${esc(activity.id)}"${expanded.has(activity.id) ? " open" : ""}>
-    <summary>${body}<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg></span></summary>
-    <div class="more"><a class="btn small primary" href="${esc(map)}" target="_blank" rel="noopener noreferrer">Open map</a></div>
-  </details>`;
+    </div>
+  </div>`;
 }
 
 function render() {
@@ -140,14 +137,6 @@ function render() {
   document.title = trip.name;
 }
 
-screen.addEventListener(
-  "toggle",
-  (event) => {
-    const id = event.target.dataset?.id;
-    if (id) event.target.open ? expanded.add(id) : expanded.delete(id);
-  },
-  true,
-);
 screen.addEventListener("click", (event) => {
   const pill = event.target.closest("[data-me]");
   if (!pill) return;
