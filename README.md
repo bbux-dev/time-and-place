@@ -31,6 +31,9 @@ pnpm check      # syntax
   name, address, map link, and Dining setting; review and save normally. This prototype reads Google
   Maps page and place-preview metadata without an API key. Its format can change; if details are
   unavailable, the form stays editable for manual entry. No activity is saved by the lookup itself.
+  If Google blocks the hosted preview, the importer uses the place name from the resolved link when
+  available and shows a banner explaining which details need checking. Lookup and form errors appear
+  at the top of the editor; failed saves show a persistent admin banner with **Retry save**.
   Choose **Date TBD** to keep an activity in **Unscheduled**, visible on both trip views. Use **Schedule**
   to choose a day and optional times, or edit a dated activity and choose **Date TBD** to move it back.
 - **Share link** (`/s/<token>`): no login. Shows one trip and the first names on it. The token is random,

@@ -16,6 +16,11 @@
   </head>
   <body>
     <div id="app">
+      <div id="admin-error" class="error-banner admin-error" role="alert" hidden>
+        <span data-error-message></span>
+        <button type="button" class="btn small" data-retry-save hidden>Retry save</button>
+        <button type="button" class="x" data-dismiss-error aria-label="Dismiss error">✕</button>
+      </div>
       <div id="screen"></div>
       <dialog id="overlay" aria-labelledby="sheetTitle"></dialog>
       <div id="toast" role="status" aria-live="polite"></div>

@@ -13,6 +13,7 @@
   --on-accent: #fff;
   --accent-soft: #d9f0ed;
   --danger: #c62828;
+  --danger-soft: #fce8e6;
   --ring: rgba(15, 118, 110, 0.3);
   --shadow: 0 8px 24px rgba(26, 31, 35, 0.07);
 }
@@ -28,6 +29,7 @@
     --on-accent: #06201d;
     --accent-soft: #12332f;
     --danger: #ff8a80;
+    --danger-soft: #411c1a;
     --ring: rgba(45, 212, 191, 0.35);
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
@@ -614,6 +616,34 @@ dialog::backdrop {
   font-weight: 600;
   font-size: 14px;
   margin: 8px 0 0;
+}
+.error-banner {
+  padding: 12px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sheet > .error-banner {
+  margin: 0 0 14px;
+}
+.admin-error {
+  margin: 12px 18px 0;
+}
+.admin-error:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.admin-error [data-error-message] {
+  flex: 1 1 180px;
+}
+.admin-error .x {
+  margin-left: auto;
 }
 
 #toast {

@@ -98,11 +98,38 @@ test("redirect loops and oversized pages are bounded", async () => {
 
 test("lookup failures leave a usable manual-entry fallback", async () => {
   await assert.rejects(previewMapsLink(SHORT, async () => { throw new Error("Network failure"); }), /Couldn't reach Google Maps/);
-  await assert.rejects(previewMapsLink(SHORT, async () => new Response("", { status: 429 })), /couldn't load/);
+  await assert.rejects(previewMapsLink(SHORT, async () => new Response("", { status: 429 })), /blocked the place preview/);
   const result = await previewMapsLink(PAGE, async (url) => url === PAGE
     ? new Response(HTML) : new Response("unavailable", { status: 503 }));
   assert.equal(result.title, "Komodo Las Vegas");
   assert.equal(result.dining, null);
+});
+
+test("Google challenges preserve the resolved place name without following the challenge", async () => {
+  const mob = "https://www.google.com/maps/place/The+Mob+Museum/";
+  for (const blockedUrl of ["https://www.google.com/sorry/index?continue=maps", "https://consent.google.com/m"]) {
+    let calls = 0;
+    const result = await previewMapsLink(SHORT, async (url) => {
+      calls++;
+      if (url === SHORT) return new Response(null, { status: 302, headers: { Location: mob } });
+      assert.equal(url, mob, "the challenge page must never be fetched");
+      return new Response(null, { status: 302, headers: { Location: blockedUrl } });
+    });
+    assert.equal(calls, 2);
+    assert.equal(result.title, "The Mob Museum");
+    assert.equal(result.dining, null, "no category is invented from a blocked preview");
+    assert.equal(result.mapUrl, SHORT);
+    assert.match(result.warning, /blocked the full preview/);
+  }
+});
+
+test("403 and 429 responses on a resolved place produce an explicit partial-result warning", async () => {
+  for (const status of [403, 429]) {
+    const result = await previewMapsLink(PAGE, async () => new Response("blocked", { status }));
+    assert.equal(result.title, "Komodo Las Vegas");
+    assert.equal(result.dining, null);
+    assert.match(result.warning, /check the address and activity type/);
+  }
 });
 
 test("untrusted preload links are ignored", async () => {

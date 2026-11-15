@@ -124,8 +124,20 @@ async function fetchMaps(url, fetcher, signal) {
       const target = response.headers.get("location");
       await response.body?.cancel();
       if (!target) break;
-      url = new URL(target, url);
+      const next = new URL(target, url);
+      // Do not follow or attempt to bypass Google's automated-traffic/consent pages.
+      // The last Maps URL may still contain a useful place name.
+      if (next.protocol === "https:" && !next.username && !next.password && !next.port
+        && ((["google.com", "www.google.com"].includes(next.hostname) && /^\/(sorry|consent)(\/|$)/.test(next.pathname))
+          || next.hostname === "consent.google.com")) {
+        return { url, text: "", blocked: true };
+      }
+      url = next;
       continue;
+    }
+    if (response.status === 403 || response.status === 429) {
+      await response.body?.cancel();
+      return { url, text: "", blocked: true };
     }
     if (!response.ok) {
       await response.body?.cancel();
@@ -142,13 +154,28 @@ export async function previewMapsLink(value, fetcher = fetch) {
   const signal = AbortSignal.timeout(12_000);
   try {
     const page = await fetchMaps(original, fetcher, signal);
+    let blocked = page.blocked;
     let preview = "";
     const detailsUrl = previewUrl(page.text, page.url);
     if (detailsUrl) {
-      try { preview = (await fetchMaps(detailsUrl, fetcher, signal)).text; }
+      try {
+        const details = await fetchMaps(detailsUrl, fetcher, signal);
+        preview = details.text;
+        blocked ||= details.blocked;
+      }
       catch { /* place names in page metadata still work if the detail request fails */ }
     }
-    return { ...parseMapsPlace(page.text, page.url, preview), mapUrl: original.href };
+    let place;
+    try { place = parseMapsPlace(page.text, page.url, preview); }
+    catch (error) {
+      if (blocked) throw new MapsPreviewError("Google Maps blocked the place preview. Open the link in Maps and fill in the activity manually.", 502);
+      throw error;
+    }
+    return {
+      ...place,
+      mapUrl: original.href,
+      ...(blocked ? { warning: "Google Maps blocked the full preview. The place name was filled; check the address and activity type before saving." } : {}),
+    };
   } catch (error) {
     if (error instanceof MapsPreviewError) throw error;
     throw new MapsPreviewError("Couldn't reach Google Maps. Try again or enter the activity details manually.", 502);

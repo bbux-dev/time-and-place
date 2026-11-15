@@ -28,6 +28,7 @@ import {
 const screen = document.querySelector("#screen");
 const overlay = document.querySelector("#overlay");
 const toastEl = document.querySelector("#toast");
+const adminError = document.querySelector("#admin-error");
 
 let store = null;
 let saving = Promise.resolve();
@@ -43,24 +44,39 @@ function toast(message) {
 
 // ---------- data ----------
 
+function showAdminError(message, retry = false) {
+  adminError.querySelector("[data-error-message]").textContent = message;
+  adminError.querySelector("[data-retry-save]").hidden = !retry;
+  adminError.hidden = false;
+}
+
+adminError.querySelector("[data-dismiss-error]").addEventListener("click", () => { adminError.hidden = true; });
+adminError.querySelector("[data-retry-save]").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  saving = saving.then(push);
+  await saving;
+  button.disabled = false;
+});
+
 async function push() {
-  let res;
   try {
-    res = await fetch("/api/store", {
+    const res = await fetch("/api/store", {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Requested-With": "trip-planner" },
       body: JSON.stringify(store),
     });
+    if (res.status === 409) {
+      store = (await res.json()).store;
+      render();
+      return showAdminError("Changed elsewhere — reloaded the latest. Redo your last change.");
+    }
+    if (!res.ok) return showAdminError("Not saved — the server rejected the change. Try saving again.", true);
+    store.rev = (await res.json()).rev;
+    adminError.hidden = true;
   } catch {
-    return toast("Not saved — the server is unreachable.");
+    showAdminError("Couldn't confirm the save. Keep this page open and retry when the connection is back.", true);
   }
-  if (res.status === 409) {
-    store = (await res.json()).store;
-    render();
-    return toast("Changed elsewhere — reloaded the latest. Redo your last change.");
-  }
-  if (!res.ok) return toast("Not saved — the server rejected the change.");
-  store.rev = (await res.json()).rev;
 }
 
 function commit(next) {
@@ -286,21 +302,19 @@ function wireTimePickers(form) {
 function openSheet({ title, body, submit = "Save", onSubmit, onReady, remove }) {
   overlay.innerHTML = `<form class="sheet">
     <div class="sheet-head"><h2 id="sheetTitle">${esc(title)}</h2><button type="button" class="x" data-close aria-label="Close">✕</button></div>
+    <p class="error error-banner" role="alert" hidden></p>
     ${body}
-    <p class="error" role="alert" hidden></p>
     <div class="actions">
       ${remove ? `<button type="button" class="btn danger" data-remove>${esc(remove.label)}</button>` : ""}
       <button class="btn primary grow">${esc(submit)}</button>
     </div>
   </form>`;
   const form = overlay.firstElementChild;
-  const error = form.querySelector(".error");
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const problem = onSubmit(formValues(form), form);
     if (problem) {
-      error.textContent = problem;
-      error.hidden = false;
+      showFormError(form, problem);
     } else overlay.close();
   });
   form.querySelector("[data-close]").addEventListener("click", () => overlay.close());
@@ -313,6 +327,13 @@ function openSheet({ title, body, submit = "Save", onSubmit, onReady, remove }) 
   wireTimePickers(form);
   onReady?.(form);
   overlay.showModal();
+}
+
+function showFormError(form, message) {
+  const error = form.querySelector(".error");
+  error.textContent = message;
+  error.hidden = false;
+  error.scrollIntoView({ block: "nearest" });
 }
 
 overlay.addEventListener("click", (event) => {
@@ -510,8 +531,10 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
         const input = form.elements.mapsLookup;
         const submitted = input.value.trim();
         const url = webLink(submitted);
+        form.querySelector(".error").hidden = true;
         if (!url) {
-          status.textContent = "Paste a Google Maps place link first.";
+          status.textContent = "";
+          showFormError(form, "Paste a Google Maps place link first.");
           input.focus();
           return;
         }
@@ -523,7 +546,10 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
             headers: { "Content-Type": "application/json", "X-Requested-With": "trip-planner" },
             body: JSON.stringify({ url }),
           });
-          const place = await res.json();
+          if (res.status === 401) throw new Error("Your admin login expired. Reload the page and sign in again.");
+          let place;
+          try { place = await res.json(); }
+          catch { throw new Error("The Maps lookup didn't return details. Try again or fill in the activity manually."); }
           if (!res.ok) throw new Error(place.error || "Couldn't load that place. You can enter the details manually.");
           if (!overlay.open || overlay.firstElementChild !== form) return;
           if (input.value.trim() !== submitted) {
@@ -534,11 +560,17 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
           form.elements.location.value = place.location;
           form.elements.mapUrl.value = place.mapUrl;
           if (typeof place.dining === "boolean") form.elements.dining.checked = place.dining;
+          if (place.warning) showFormError(form, place.warning);
           status.textContent = place.category
             ? `Found ${place.category}. Review the details and Dining option, then save.`
             : "Place name found. Check the address and Dining option before saving.";
         } catch (error) {
-          status.textContent = error.message || "Couldn't reach Google Maps. Enter the activity details manually.";
+          status.textContent = "";
+          if (overlay.open && overlay.firstElementChild === form) {
+            showFormError(form, error instanceof TypeError
+              ? "Couldn't reach the Maps lookup. Check your connection and try again."
+              : error.message || "Couldn't reach Google Maps. Enter the activity details manually.");
+          }
         } finally {
           lookupButton.disabled = false;
         }
@@ -737,5 +769,6 @@ try {
   store = await res.json();
   render();
 } catch {
-  screen.innerHTML = `<p class="empty">Couldn't load your trips. Check that the server is running, then reload.</p>`;
+  showAdminError("Couldn't load your trips. Check your connection and reload the page.");
+  screen.innerHTML = "";
 }
