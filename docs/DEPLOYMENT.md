@@ -22,7 +22,8 @@ No special token is needed. The token the Cloudflare-only siblings use has every
 - Account: Workers R2 Storage — Edit (the data bucket and SST state).
 - Zone `bxtn.dev`: DNS — Edit, Zone — Read, Workers Routes — Edit.
 
-Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_DEFAULT_ACCOUNT_ID` in `.env` (see `.env.example`). The Worker itself
+Put `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_DEFAULT_ACCOUNT_ID` in `.env` (see `.env.example`). With direnv, `.envrc` loads
+`.env` into your shell automatically; run `direnv allow` once after cloning. The Worker itself
 gets no API token; it reaches the bucket through its binding.
 
 ## First deploy
