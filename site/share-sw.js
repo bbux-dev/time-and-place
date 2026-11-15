@@ -2,13 +2,15 @@
 // Network first, so people always see the latest plan when they have signal;
 // the last copy that loaded is shown when they do not.
 const CACHE = "trip-share-v1";
+// Give JSDoc the service-worker global type without mixing DOM and worker declarations.
+const worker = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (globalThis));
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+worker.addEventListener("install", () => worker.skipWaiting());
+worker.addEventListener("activate", (event) => event.waitUntil(worker.clients.claim()));
 
-self.addEventListener("fetch", (event) => {
+worker.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET" || new URL(request.url).origin !== location.origin) return;
+  if (request.method !== "GET" || new URL(request.url).origin !== worker.location.origin) return;
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);

@@ -8,17 +8,20 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createHandler } from "./infra/handler.js";
-import { emptyStore } from "./site/domain.js";
+import { emptyStore, isValidStore } from "./site/domain.js";
 
 const SITE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "site");
 
+/** @param {string} file @returns {import('./infra/handler.js').Storage} */
 function fileStorage(file) {
   return {
     async get() {
       try {
-        return { store: JSON.parse(await readFile(file, "utf8")), version: null };
+        const store = JSON.parse(await readFile(file, "utf8"));
+        if (!isValidStore(store)) throw new Error("Invalid stored trip data");
+        return { store, version: null };
       } catch (err) {
-        if (err.code === "ENOENT") return { store: emptyStore(), version: null };
+        if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") return { store: emptyStore(), version: null };
         throw err;
       }
     },
@@ -31,28 +34,35 @@ function fileStorage(file) {
   };
 }
 
+/** @type {import('./infra/handler.js').Assets} */
 const siteAssets = {
   async read(name) {
     try {
-      return await readFile(path.join(SITE_DIR, name));
+      return new Uint8Array(await readFile(path.join(SITE_DIR, name)));
     } catch (err) {
-      if (err.code === "ENOENT" || err.code === "EISDIR") return null;
+      if (err && typeof err === "object" && "code" in err && (err.code === "ENOENT" || err.code === "EISDIR")) return null;
       throw err;
     }
   },
 };
 
+/** @param {{dataFile: string, user: string, password: string}} options */
 export function createApp({ dataFile, user, password }) {
   const handle = createHandler({ storage: fileStorage(dataFile), assets: siteAssets, user, password });
   return http.createServer(async (req, res) => {
     try {
       const hasBody = req.method !== "GET" && req.method !== "HEAD";
-      const request = new Request(`http://${req.headers.host || "localhost"}${req.url}`, {
+      const headers = new Headers();
+      for (let i = 0; i < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i], req.rawHeaders[i + 1]);
+      /** @type {RequestInit & {duplex: 'half'}} */
+      const init = {
         method: req.method,
-        headers: req.headers,
-        body: hasBody ? Readable.toWeb(req) : undefined,
+        headers,
+        // Node and DOM declare the same web stream API with different generic details.
+        body: hasBody ? /** @type {ReadableStream<Uint8Array>} */ (/** @type {unknown} */ (Readable.toWeb(req))) : undefined,
         duplex: "half",
-      });
+      };
+      const request = new Request(`http://${req.headers.host || "localhost"}${req.url}`, init);
       const response = await handle(request);
       res.writeHead(response.status, Object.fromEntries(response.headers));
       res.end(req.method === "HEAD" ? undefined : Buffer.from(await response.arrayBuffer()));

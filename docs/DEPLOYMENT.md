@@ -35,6 +35,7 @@ gets no API token; it reaches the bucket through its binding.
 
 ```sh
 pnpm install
+pnpm exec playwright install chromium                   # browser tests used by pnpm deploy
 pnpm preflight                                         # read-only check of token, zone and domain
 pnpm exec sst secret set AdminPassword --stage prod < password.txt   # then delete password.txt
 pnpm deploy
@@ -46,6 +47,11 @@ also works.
 
 `pnpm deploy` runs the preflight, syntax checks and tests, `sst deploy --stage prod`, then checks the live site:
 the admin page and data refuse anonymous requests, public files match this checkout, and HTTP redirects to HTTPS.
+
+Checks include strict JSDoc type checking and the colocated Node and Playwright suites. Browser tests
+use local temporary databases and mocked Maps responses. Before SST uploads assets, `pnpm prepare:site`
+copies the allowlisted application files to `.site/`; tests and test helpers stay out of the deployment.
+Use the deployment script rather than invoking SST directly so this asset preparation is not skipped.
 
 Then open <https://trips.bxtn.dev> and log in with `ADMIN_USER` (default `admin`) and the password you set.
 The hosted site starts empty; it does not copy `data/store.json` from your machine.

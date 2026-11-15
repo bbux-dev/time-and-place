@@ -5,7 +5,8 @@ One admin edits behind a login; everyone else gets a read-only share link.
 
 See [CHANGES.md](CHANGES.md) for release history.
 
-Plain HTML, CSS and JavaScript with no build step. Runs locally on Node, and on Cloudflare at
+Plain HTML, CSS and ESM JavaScript with no runtime build step. JSDoc contracts are checked with
+`checkJs`; application files stay JavaScript. Runs locally on Node, and on Cloudflare at
 **https://trips.bxtn.dev** (a Worker plus one JSON object in R2).
 
 ## Run
@@ -18,9 +19,19 @@ Open <http://127.0.0.1:4181> and log in with `admin` / `changeme`.
 Copy `.env.example` to `.env` to set your own login, or to set `HOST=0.0.0.0` so phones on the same Wi-Fi can open a share link.
 
 ```sh
-pnpm test       # rules, share-link privacy, login and save behavior
-pnpm check      # syntax
+pnpm exec playwright install chromium  # once, for browser tests
+pnpm check       # strict JSDoc checking plus JavaScript syntax
+pnpm test        # colocated unit/integration tests, then Playwright
+pnpm test:unit   # Node tests only
+pnpm test:ui     # browser tests only
+pnpm test:ui:headed # watch tests in a browser
 ```
+
+Node tests use `*.test.js`; browser tests use `*.ui.test.js`, beside the source they cover.
+Playwright runs desktop, phone, and small-phone dark-mode projects. Each test gets its own loopback
+server and temporary database; it does not load `.env` or contact production. Maps lookups are mocked.
+Failures retain screenshots and traces in ignored `test-results/`; the HTML report is in
+`playwright-report/`. On CI, install browser dependencies with `pnpm exec playwright install --with-deps chromium`.
 
 ## How it works
 
@@ -53,6 +64,10 @@ pnpm check      # syntax
 - **Data**: one JSON document, read and written whole. Locally it is `data/store.json` (git-ignored); hosted it is
   `store.json` in a private R2 bucket, with a daily backup copy. Each save carries a revision number, so a stale
   tab cannot overwrite newer changes.
+  If another tab changes the data while edits are queued, saving pauses and keeps the local edits
+  available for export. Export a copy before reloading the latest data; conflicts never trigger an
+  automatic overwrite or silently discard queued edits. Imports and saves validate formatter fields,
+  calendar dates, IDs, and attendee references before accepting data.
 
 ## Hosting
 
@@ -70,9 +85,15 @@ Cloudflare only, through SST: one Worker on `trips.bxtn.dev` and one R2 bucket. 
 - `server.mjs`: local Node entry, storing to a file.
 - `sst.config.ts`, `scripts/`: infrastructure, preflight, deploy and hosted checks.
 - `site/domain.js`: trip rules and formatting, shared by both pages and the server.
+- `site/models.js`: JSDoc data contracts; `site/validation.js`: runtime import/save validation.
 - `site/activity-types.js`: shared type labels, icons, and filter options.
-- `site/app.js` + `index.html`: the admin page.
+- `site/app.js` + `index.html`: admin composition and event dispatch.
+- `site/admin/`: persistence, views, form helpers, activity building, editors, and Maps lookup UI.
+- `site/dom.js`: checked DOM access shared by admin and public views.
 - `site/share.js` + `share.html`: the shared itinerary.
 - `site/sample.json`: fictional public sample data, separate from the trip database.
 - `site/share-sw.js`: offline copy of shared itineraries (network first).
 - `site/styles.css`: phone-sized layout, light and dark.
+- `playwright.config.js` + `test-support/ui.js`: browser projects and isolated test fixtures.
+- `infra/assets.js`: the explicit serving/deployment manifest. `pnpm prepare:site` copies those assets
+  into ignored `.site/` for Cloudflare; colocated tests, JSDoc-only models, and test helpers are excluded.

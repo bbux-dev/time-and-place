@@ -1,3 +1,4 @@
+import { element, closest } from "./dom.js";
 // Shared, read-only itinerary. Anyone with the link sees this page; no login.
 
 import {
@@ -18,9 +19,9 @@ import {
 } from "./domain.js";
 import { ACTIVITY_FILTERS, activityTypeIcons } from "./activity-types.js";
 
-const screen = document.querySelector("#screen");
+const screen = element(document, "#screen", HTMLElement);
 const isSample = /^\/sample\/?$/.test(location.pathname);
-const token = isSample ? "sample" : location.pathname.split("/").pop();
+const token = isSample ? "sample" : location.pathname.split("/").pop() || "";
 const ME_KEY = `trip-planner:me:${token}`;
 
 // Installable per trip, and readable without signal once it has loaded.
@@ -32,11 +33,15 @@ if (!isSample) {
   navigator.serviceWorker?.register("/share-sw.js", { scope: "/s/" }).catch(() => {});
 }
 
+/** @type {import("./models.js").SharedView|null} */
 let data = null;
+/** @type {string|null} */
 let me = null; // person id, or null for "everyone"
 let offline = false;
+/** @type {import("./models.js").ActivityFilter} */
 let activityFilter = "all";
 
+/** @param {string|null} id */
 function remember(id) {
   try {
     id ? localStorage.setItem(ME_KEY, id) : localStorage.removeItem(ME_KEY);
@@ -45,6 +50,7 @@ function remember(id) {
   }
 }
 
+/** @param {import("./models.js").Lodging[]} lodging */
 function lodgingCard(lodging) {
   if (!lodging.length) return "";
   const items = lodging
@@ -70,9 +76,11 @@ function lodgingCard(lodging) {
 
 const LIVE = { now: "Now", next: "Up next" };
 
-function activityRow(activity, when, live) {
-  const { going, notGoing, everyone } = attendance(activity, data.people);
+/** @param {import("./models.js").Activity} activity @param {string} when @param {"now"|"next"|undefined} live */
+function activityRow(activity, when, live = undefined) {
+  const { going, notGoing, everyone } = attendance(activity, data?.people ?? []);
   const mine = !me || activity.attendeeIds.includes(me);
+  /** @param {import("./models.js").SharedPerson[]} list */
   const names = (list) => esc(list.map((p) => p.name).join(", "));
   let who = `<span class="muted">Nobody yet</span>`;
   if (everyone) who = "Everyone";
@@ -103,13 +111,14 @@ function activityRow(activity, when, live) {
 }
 
 function render() {
+  if (!data) return;
   const { trip, people } = data;
   const today = localDate();
   const live = isSample ? new Map() : liveStatus(trip.activities, today, localTime(), me);
   const done = isSample ? new Set() : finishedToday(trip.activities, today, localTime());
   const activities = filterActivities(trip.activities, activityFilter);
   const unscheduled = activities.filter((a) => !a.date);
-  const mineCount = me ? activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
+  const mineCount = me ? activities.filter((a) => me !== null && a.attendeeIds.includes(me)).length : 0;
   const category = activityFilter === "dining" ? "dining activities" : activityFilter === "museum" ? "museum visits" : "activities";
   const days = activitiesByDay(activities)
     .map((day) => {
@@ -159,13 +168,14 @@ function render() {
 }
 
 screen.addEventListener("click", (event) => {
-  const filter = event.target.closest("[data-activity-filter]");
+  const filter = closest(event, "[data-activity-filter]");
   if (filter) {
-    activityFilter = filter.dataset.activityFilter;
+    const value = filter.dataset.activityFilter;
+    if (value === "all" || value === "activities" || value === "dining" || value === "museum") activityFilter = value;
     render();
     return;
   }
-  const pill = event.target.closest("[data-me]");
+  const pill = closest(event, "[data-me]");
   if (!pill) return;
   me = pill.dataset.me || null;
   remember(me);
@@ -182,7 +192,7 @@ try {
     offline = !navigator.onLine;
     try {
       const saved = localStorage.getItem(ME_KEY);
-      if (data.people.some((p) => p.id === saved)) me = saved;
+      if (data?.people.some((p) => p.id === saved)) me = saved;
     } catch {
       /* no saved choice */
     }

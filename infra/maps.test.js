@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createHandler } from "../infra/handler.js";
-import { MapsPreviewError, parseMapsPlace, previewMapsLink } from "../infra/maps.js";
+import { createHandler } from "./handler.js";
+import { MapsPreviewError, parseMapsPlace, previewMapsLink } from "./maps.js";
 
 const SHORT = "https://maps.app.goo.gl/oJ3CHSb66Tx4YTf66";
 const PAGE = "https://www.google.com/maps/place/Komodo+Las+Vegas/";

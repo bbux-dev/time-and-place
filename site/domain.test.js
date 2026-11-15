@@ -24,7 +24,7 @@ import {
   sharedView,
   TOKEN_RE,
   webLink,
-} from "../site/domain.js";
+} from "./domain.js";
 
 const people = [
   { id: "dad", name: "Dad", adult: true },

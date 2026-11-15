@@ -3,7 +3,7 @@ import { preflight } from './cloudflare.mjs';
 
 try {
   await preflight();
-  for (const args of [['check'], ['test'], ['exec', 'sst', 'deploy', '--stage', 'prod'], ['verify']]) {
+  for (const args of [['check'], ['test'], ['prepare:site'], ['exec', 'sst', 'deploy', '--stage', 'prod'], ['verify']]) {
     const result = spawnSync('pnpm', args, { stdio: 'inherit', env: process.env });
     if (result.error) throw result.error;
     if (result.status !== 0) process.exit(result.status ?? 1);

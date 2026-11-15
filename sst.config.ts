@@ -37,7 +37,7 @@ export default $config({
       link: [data, adminPassword],
       environment: { ADMIN_USER: process.env.ADMIN_USER || 'admin' },
       assets: {
-        directory: 'site',
+        directory: '.site',
         htmlHandling: 'none',
         notFoundHandling: 'none',
         runWorkerFirst: true,

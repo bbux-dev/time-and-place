@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import worker from "../infra/worker.js";
+import worker from "./worker.js";
 
 const TOKEN = "abcdefghijklmnopqrstuv";
 const ORIGIN = "https://trips.bxtn.dev";

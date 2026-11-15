@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
-import { createApp } from "../server.mjs";
+import { createApp } from "./server.mjs";
 
 const TOKEN = "abcdefghijklmnopqrstuv";
 const AUTH = { Authorization: `Basic ${Buffer.from("boss:s3cret").toString("base64")}` };
@@ -128,6 +128,9 @@ test("unknown share tokens and odd paths give nothing away", async () => {
   assert.equal((await fetch(`${base}/api/shared/`)).status, 404);
   assert.equal((await fetch(`${base}/..%2Fserver.mjs`, { headers: AUTH })).status, 404);
   assert.equal((await fetch(`${base}/nope.js`, { headers: AUTH })).status, 404);
+  for (const file of ["domain.test.js", "app.ui.test.js", "admin/store.test.js", "models.js"]) {
+    assert.equal((await fetch(`${base}/${file}`, { headers: AUTH })).status, 404, `${file} is not an application asset`);
+  }
 });
 
 test("stopping sharing kills the link", async () => {

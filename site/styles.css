@@ -2,6 +2,9 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
+[hidden] {
+  display: none !important;
+}
 :root {
   --bg: #f1f3f4;
   --surface: #fff;

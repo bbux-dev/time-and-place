@@ -6,7 +6,9 @@
 
 import { emptyStore, isValidStore, sharedView } from "../site/domain.js";
 import { MapsPreviewError, previewMapsLink } from "./maps.js";
+import { PUBLIC_ASSETS, SITE_ASSETS } from "./assets.js";
 
+/** @type {Record<string, string>} */
 const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -17,19 +19,8 @@ const TYPES = {
   ".webmanifest": "application/manifest+json",
 };
 // Files the shared page needs. Everything else requires the admin login.
-const PUBLIC_FILES = new Set([
-  "/styles.css",
-  "/share.js",
-  "/domain.js",
-  "/activity-types.js",
-  "/icon.svg",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/icon-maskable-512.png",
-  "/apple-touch-icon.png",
-  "/manifest.webmanifest",
-  "/share-sw.js",
-]);
+const PUBLIC_FILES = new Set(PUBLIC_ASSETS.map((name) => `/${name}`));
+const ALLOWED_FILES = new Set(SITE_ASSETS);
 const ICONS = [
   { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
   { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
@@ -40,8 +31,10 @@ const MAX_BODY = 1_000_000;
 const BASE = { "Cache-Control": "no-store, no-transform", "X-Content-Type-Options": "nosniff" };
 const SHARED = { "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex, nofollow" };
 
+/** @param {number} status @param {string} body @param {Record<string,string>} [headers] */
 const text = (status, body, headers = {}) =>
   new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8", ...BASE, ...headers } });
+/** @param {number} status @param {unknown} body @param {Record<string,string>} [headers] */
 const json = (status, body, headers = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -49,12 +42,14 @@ const json = (status, body, headers = {}) =>
   });
 
 class HttpError extends Error {
+  /** @param {number} status @param {string} message */
   constructor(status, message) {
     super(message);
     this.status = status;
   }
 }
 
+/** @param {Request} request @returns {Promise<unknown>} */
 async function readJson(request) {
   const chunks = [];
   let size = 0;
@@ -78,10 +73,12 @@ async function readJson(request) {
   }
 }
 
+/** @param {string} value */
 const digest = async (value) =>
   new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
 
 /** Compares hashes byte by byte without stopping early, so timing says nothing about the password. */
+/** @param {string} a @param {string} b */
 async function same(a, b) {
   const [x, y] = await Promise.all([digest(a), digest(b)]);
   let diff = 0;
@@ -89,14 +86,23 @@ async function same(a, b) {
   return diff === 0;
 }
 
+/**
+ * @typedef {{get: () => Promise<{store: import('../site/models.js').Store, version: string|null}>, put: (store: import('../site/models.js').Store, version: string|null) => Promise<boolean>}} Storage
+ * @typedef {{read: (name: string) => Promise<BodyInit|null>}} Assets
+ * @typedef {{get: (key: string) => Promise<{etag: string, json: () => Promise<unknown>}|null>, put: (key: string, body: string, options: {httpMetadata: {contentType: string}, onlyIf?: {etagMatches: string}}) => Promise<unknown|null>}} Bucket
+ * @param {{storage: Storage, assets: Assets, user: string, password: string, mapsFetch?: typeof fetch}} options
+ */
 export function createHandler({ storage, assets, user, password, mapsFetch = fetch }) {
+  /** @type {Promise<unknown>} */
   let chain = Promise.resolve();
+  /** @template T @param {() => Promise<T>} fn @returns {Promise<T>} */
   const exclusive = (fn) => {
     const run = chain.then(fn);
     chain = run.catch(() => {});
     return run;
   };
 
+  /** @param {Request} request */
   async function isAdmin(request) {
     const [scheme, encoded] = (request.headers.get("authorization") || "").split(" ");
     if (scheme !== "Basic" || !encoded) return false;
@@ -115,14 +121,16 @@ export function createHandler({ storage, assets, user, password, mapsFetch = fet
     return okUser && okPass;
   }
 
+  /** @param {string} name @param {Record<string,string>} [headers] */
   async function file(name, headers = {}) {
     const type = TYPES[name.slice(name.lastIndexOf("."))];
-    if (!type || !/^[\w.-]+$/.test(name)) return text(404, "Not found");
+    if (!type || !ALLOWED_FILES.has(name)) return text(404, "Not found");
     const body = await assets.read(name);
     if (body === null) return text(404, "Not found");
     return new Response(body, { status: 200, headers: { "Content-Type": type, ...BASE, ...headers } });
   }
 
+  /** @param {Request} request */
   async function route(request) {
     const { pathname } = new URL(request.url);
     const isRead = request.method === "GET" || request.method === "HEAD";
@@ -170,7 +178,8 @@ export function createHandler({ storage, assets, user, password, mapsFetch = fet
       if (request.method !== "POST") return json(405, { error: "Method not allowed" });
       if (request.headers.get("x-requested-with") !== "trip-planner") return json(403, { error: "Forbidden" });
       const body = await readJson(request);
-      return json(200, await previewMapsLink(body?.url, mapsFetch));
+      const url = body && typeof body === "object" && "url" in body ? body.url : undefined;
+      return json(200, await previewMapsLink(url, mapsFetch));
     }
     if (pathname === "/api/store") {
       if (isRead) return json(200, (await storage.get()).store);
@@ -194,7 +203,7 @@ export function createHandler({ storage, assets, user, password, mapsFetch = fet
     return file(pathname === "/" ? "index.html" : pathname.slice(1));
   }
 
-  return async function handle(request) {
+  return async function handle(/** @type {Request} */ request) {
     try {
       return await route(request);
     } catch (err) {
@@ -207,12 +216,15 @@ export function createHandler({ storage, assets, user, password, mapsFetch = fet
 }
 
 /** One JSON object in an R2 bucket is the whole database. */
+/** @param {Bucket} bucket @param {string} [key] @returns {Storage} */
 export function r2Storage(bucket, key = "store.json") {
   return {
     async get() {
       const object = await bucket.get(key);
       if (!object) return { store: emptyStore(), version: null };
-      return { store: await object.json(), version: object.etag };
+      const store = await object.json();
+      if (!isValidStore(store)) throw new Error("Invalid stored trip data");
+      return { store, version: object.etag };
     },
     async put(store, version) {
       const body = JSON.stringify(store);

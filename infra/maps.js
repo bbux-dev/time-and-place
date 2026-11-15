@@ -2,16 +2,18 @@
 // return editable suggestions and fall back to the place name when details are absent.
 
 export class MapsPreviewError extends Error {
+/** @param {string} message @param {number} [status] */
   constructor(message, status = 400) {
     super(message);
     this.status = status;
   }
 }
 
+/** @param {string} value */
 function mapsUrl(value) {
   let url;
-  try { url = new URL(value); } catch { /* handled below */ }
-  const host = url?.hostname;
+  try { url = new URL(value); } catch { throw new MapsPreviewError("Paste a Google Maps place link."); }
+  const host = url.hostname;
   const allowed = host === "maps.app.goo.gl"
     || (host === "goo.gl" && url.pathname.startsWith("/maps/"))
     || (["google.com", "www.google.com", "maps.google.com"].includes(host)
@@ -22,17 +24,21 @@ function mapsUrl(value) {
   return url;
 }
 
+/** @param {string} value */
 function decodeEntities(value) {
   return value.replace(/&(#x[\da-f]+|#\d+|amp|quot|apos|lt|gt);/gi, (match, entity) => {
     if (entity.startsWith("#")) {
       const number = /^#x/i.test(entity) ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
       return number > 0 && number <= 0x10ffff ? String.fromCodePoint(number) : match;
     }
-    return { amp: "&", quot: '"', apos: "'", lt: "<", gt: ">" }[entity.toLowerCase()] ?? match;
+    const entities = /** @type {Record<string,string>} */ ({ amp: "&", quot: '"', apos: "'", lt: "<", gt: ">" });
+    return entities[entity.toLowerCase()] ?? match;
   });
 }
 
+/** @param {string} tag @returns {Record<string,string>} */
 function attributes(tag) {
+  /** @type {Record<string,string>} */
   const result = {};
   for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g)) {
     result[match[1].toLowerCase()] = decodeEntities(match[2] ?? match[3] ?? match[4]);
@@ -40,6 +46,7 @@ function attributes(tag) {
   return result;
 }
 
+/** @param {string} html @param {string} name */
 function meta(html, name) {
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const attrs = attributes(tag);
@@ -48,6 +55,7 @@ function meta(html, name) {
   return "";
 }
 
+/** @param {string} html @param {URL} pageUrl */
 function previewUrl(html, pageUrl) {
   for (const tag of html.match(/<link\b[^>]*>/gi) ?? []) {
     const attrs = attributes(tag);
@@ -61,6 +69,7 @@ function previewUrl(html, pageUrl) {
 
 const FOOD_CATEGORY = /\b(restaurant|cafe|café|coffee shop|tea house|bakery|bistro|diner|pizzeria|steakhouse|bar|pub|brewpub|food court|meal takeaway|meal delivery|ice cream shop|dessert shop)\b/i;
 
+/** @param {string} html @param {string|URL} pageUrl @param {string} [previewText] */
 export function parseMapsPlace(html, pageUrl, previewText = "") {
   const url = new URL(pageUrl);
   let title = meta(html, "og:title") || decodeEntities(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").trim();
@@ -94,6 +103,7 @@ export function parseMapsPlace(html, pageUrl, previewText = "") {
   };
 }
 
+/** @param {Response} response */
 async function readLimited(response) {
   if (!response.body) return "";
   const reader = response.body.getReader();
@@ -114,6 +124,7 @@ async function readLimited(response) {
   }
 }
 
+/** @param {URL} url @param {typeof fetch} fetcher @param {AbortSignal} signal */
 async function fetchMaps(url, fetcher, signal) {
   for (let hop = 0; hop < 6; hop++) {
     url = mapsUrl(url.href);
@@ -149,6 +160,7 @@ async function fetchMaps(url, fetcher, signal) {
   throw new MapsPreviewError("That Maps link redirected too many times. Paste the place's full Google Maps link instead.", 502);
 }
 
+/** @param {unknown} value @param {typeof fetch} [fetcher] @returns {Promise<import("../site/models.js").MapsPlace>} */
 export async function previewMapsLink(value, fetcher = fetch) {
   if (typeof value !== "string" || value.length > 2048) throw new MapsPreviewError("Paste a Google Maps place link.");
   const original = mapsUrl(value.trim());

@@ -9,15 +9,18 @@
 
 import { createHandler, r2Storage } from "./handler.js";
 
+/** @typedef {{Data: import('./handler.js').Bucket, ASSETS: {fetch: (url: string) => Promise<Response>}, SST_RESOURCE_AdminPassword?: string, ADMIN_USER?: string}} Environment */
+/** @param {Environment} env */
 function adminPassword(env) {
   try {
-    return JSON.parse(env.SST_RESOURCE_AdminPassword).value.trim() || null;
+    return JSON.parse(env.SST_RESOURCE_AdminPassword || "").value.trim() || null;
   } catch {
     return null;
   }
 }
 
 export default {
+  /** @param {Request} request @param {Environment} env */
   async fetch(request, env) {
     const url = new URL(request.url);
     // Never ask for the password over plain HTTP.

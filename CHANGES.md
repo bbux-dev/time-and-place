@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.0 — 2026-11-15
+
+- Split the admin entry point into persistence, pure views, form helpers, editors, activity building,
+  and Maps lookup modules, with strict JSDoc checking for browser and backend JavaScript.
+- Preserve local edits and pause queued saves after conflicts, keeping the conflict banner visible
+  until the user reloads; ordinary failed saves remain retryable.
+- Reject invalid time/date fields, duplicate IDs, and dangling attendee references before imported
+  or saved data can reach rendering.
+- Colocate Node and Playwright tests with their source modules. Add isolated desktop and phone browser
+  coverage for editing, scheduling, type pills, Maps, save failures, conflicts, imports, and sharing.
+- Exclude tests from serving and deployment with an explicit asset manifest and preparation step.
+- Ensure the HTML `hidden` attribute wins over button styling, including the conflict retry control.
+
 ## v1.0.1 — 2026-11-15
 
 - Treat Maps lookups that fill the place name as successful, without a warning banner when Google
