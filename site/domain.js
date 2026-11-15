@@ -51,6 +51,26 @@ export function isValidStore(store) {
   return new Set(tokens).size === tokens.length;
 }
 
+/** Everything worth keeping, as a file: people, trips, and their share links. */
+export function exportData(store, now = new Date()) {
+  return { app: "trip-planner", exportedAt: now.toISOString(), people: store.people, trips: store.trips };
+}
+
+/** Reads an export file's text. Returns { people, trips } or throws an Error worth showing. */
+export function parseImport(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("That file isn't a Trip Planner export (it isn't valid JSON).");
+  }
+  const candidate = { rev: 0, people: data?.people, trips: data?.trips };
+  if (!isValidStore(candidate)) {
+    throw new Error("That file isn't a Trip Planner export, or it has been damaged. Nothing was changed.");
+  }
+  return { people: candidate.people, trips: candidate.trips };
+}
+
 export function tripPeople(trip, people) {
   return people.filter((p) => trip.peopleIds.includes(p.id));
 }

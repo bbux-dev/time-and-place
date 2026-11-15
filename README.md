@@ -29,6 +29,8 @@ pnpm check      # syntax
 - **PWA**: both pages can be added to a phone's home screen. A shared itinerary installs as its own app and,
   once it has loaded, still opens without signal (showing the last copy). The admin page is never cached.
   Offline support needs HTTPS or `localhost`, so it starts working for phones once the site is hosted.
+- **Export / import**: on the trips screen. Export downloads every trip, person and share link as one JSON file;
+  import replaces everything with such a file. This is also how to move local data to the hosted site.
 - **Data**: one JSON document, read and written whole. Locally it is `data/store.json` (git-ignored); hosted it is
   `store.json` in a private R2 bucket, with a daily backup copy. Each save carries a revision number, so a stale
   tab cannot overwrite newer changes.

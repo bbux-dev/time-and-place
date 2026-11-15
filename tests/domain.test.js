@@ -7,6 +7,7 @@ import {
   defaultAttendees,
   deletePerson,
   enforceAdultOnly,
+  exportData,
   finishedToday,
   fmtDateRange,
   fmtDateTime,
@@ -16,6 +17,7 @@ import {
   liveStatus,
   localDate,
   localTime,
+  parseImport,
   randomId,
   removePersonFromTrip,
   sharedView,
@@ -191,4 +193,20 @@ test("map links are tidied, and anything that is not a web address is dropped", 
     assert.equal(webLink(bad), "", bad);
   }
   assert.equal(webLink(undefined), "");
+});
+
+test("an export can be imported back unchanged, share links included", () => {
+  const file = JSON.stringify(exportData(store, new Date("2027-06-01T12:00:00Z")));
+  const back = parseImport(file);
+  assert.deepEqual(back, { people: store.people, trips: store.trips });
+  assert.equal(back.trips[0].shareToken, TOKEN);
+  assert.equal(JSON.parse(file).exportedAt, "2027-06-01T12:00:00.000Z");
+  assert.ok(!("rev" in back), "the revision belongs to wherever the data is imported");
+});
+
+test("files that are not exports are refused with a readable reason", () => {
+  for (const bad of ["", "not json", "[]", "null", "{}", JSON.stringify({ people: [], trips: "x" }), JSON.stringify({ people: [{ id: 1 }], trips: [] })]) {
+    assert.throws(() => parseImport(bad), /isn't a Trip Planner export/, bad);
+  }
+  assert.deepEqual(parseImport(JSON.stringify({ people: [], trips: [] })), { people: [], trips: [] });
 });

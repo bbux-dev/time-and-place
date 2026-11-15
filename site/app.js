@@ -8,6 +8,7 @@ import {
   deletePerson,
   enforceAdultOnly,
   esc,
+  exportData,
   finishedToday,
   fmtDateRange,
   fmtDateTime,
@@ -16,6 +17,7 @@ import {
   localDate,
   localTime,
   mapsUrl,
+  parseImport,
   randomId,
   removePersonFromTrip,
   tripPeople,
@@ -88,7 +90,16 @@ function homeView() {
     .join("");
   return `<div class="top"><div class="logo">Trips</div></div>
     ${cards || `<p class="empty">No trips yet. Create one to start adding people, lodging and activities.</p>`}
-    <button class="btn primary block" data-action="new-trip">New trip</button>`;
+    <button class="btn primary block" data-action="new-trip">New trip</button>
+    <div class="card" style="margin-top:22px">
+      <div class="head"><span class="label">Your data</span></div>
+      <p class="muted" style="margin:0 0 10px">Export saves every trip, person and share link to a file. Import replaces everything here with a file you exported.</p>
+      <div class="row">
+        <button class="btn small" data-action="export-data">Export</button>
+        <button class="btn small" data-action="import-data">Import</button>
+      </div>
+      <input type="file" accept="application/json,.json" hidden data-import-file />
+    </div>`;
 }
 
 function shareCard(trip) {
@@ -557,6 +568,16 @@ const actions = {
   "stop-share"(trip) {
     if (confirm("Stop sharing? The current link will stop working.")) setShare(trip, null);
   },
+  "export-data"() {
+    const blob = new Blob([JSON.stringify(exportData(store), null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `trip-planner-${localDate()}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast("Exported");
+  },
+  "import-data": () => screen.querySelector("[data-import-file]").click(),
   async "copy-share"() {
     const input = screen.querySelector("[data-share-url]");
     try {
@@ -572,6 +593,26 @@ const actions = {
 screen.addEventListener("click", (event) => {
   const el = event.target.closest("[data-action]");
   if (el) actions[el.dataset.action]?.(currentTrip(), el.dataset);
+});
+screen.addEventListener("change", async (event) => {
+  const input = event.target.closest("[data-import-file]");
+  const file = input?.files[0];
+  if (!file) return;
+  input.value = ""; // so picking the same file again still fires
+  let incoming;
+  try {
+    incoming = parseImport(await file.text());
+  } catch (err) {
+    return toast(err.message);
+  }
+  const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const summary = (d) => `${count(d.trips.length, "trip")} and ${count(d.people.length, "person").replace("persons", "people")}`;
+  const ok = confirm(
+    `Replace everything here (${summary(store)}) with the file's ${summary(incoming)}?\n\nThis cannot be undone. Export first if you want a copy of what is here now.`,
+  );
+  if (!ok) return;
+  commit({ ...store, ...incoming });
+  toast("Imported");
 });
 window.addEventListener("hashchange", () => {
   render();
