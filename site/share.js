@@ -77,9 +77,9 @@ function activityRow(activity, when, live) {
         : `Everyone <span class="muted">except ${names(notGoing)}</span>`;
   }
   const map = webLink(activity.mapUrl);
-  // With a map link, the place name is the link. Without a place name it reads "Map".
+  // With a map link, the place name is the link. With no place name, the address itself is shown.
   const place = map
-    ? `<a href="${esc(map)}" target="_blank" rel="noopener noreferrer">${esc(activity.location || "Map")}</a>`
+    ? `<a href="${esc(map)}" target="_blank" rel="noopener noreferrer" style="overflow-wrap:anywhere">${esc(activity.location || map.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</a>`
     : esc(activity.location);
   return `<div class="act${mine ? "" : " dim"}${when}">
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
