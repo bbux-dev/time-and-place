@@ -233,7 +233,7 @@ function tripView(trip) {
       <div class="activity-filters" role="group" aria-label="Activity type">
         ${[["all", "All"], ["activities", "Activities"], ["dining", "Dining"]].map(([value, label]) => `<button class="activity-filter" data-action="filter-activities" data-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
       </div>
-      <button class="btn small primary" data-action="add-activity">+ Activity</button>
+      <span class="row itinerary-actions"><button class="btn small" data-action="add-from-maps">From Maps</button><button class="btn small primary" data-action="add-activity">+ Activity</button></span>
     </div>
     ${days || `<p class="empty">${activityFilter === "all" ? "No scheduled activities yet. Add an activity or schedule one from below." : `No ${category} scheduled.`}</p>`}
     <section aria-label="Unscheduled activities">
@@ -453,7 +453,7 @@ function lodgingSheet(trip, lodging) {
   });
 }
 
-function activitySheet(trip, activity, unscheduled = false) {
+function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
   const members = tripPeople(trip, store.people);
   const minors = new Set(members.filter((p) => !p.adult).map((p) => p.id));
   const selected = new Set(activity ? activity.attendeeIds : defaultAttendees(trip, store.people));
@@ -462,6 +462,12 @@ function activitySheet(trip, activity, unscheduled = false) {
   openSheet({
     title: activity ? "Edit activity" : "Add activity",
     body: `
+      ${!activity ? `<details class="map-import" ${fromMaps ? "open" : ""}>
+        <summary>Fill from Google Maps</summary>
+        ${field("Google Maps place link", `<input name="mapsLookup" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="2048" placeholder="https://maps.app.goo.gl/…" />`)}
+        <button type="button" class="btn small" data-lookup-map>Fill details</button>
+        <p class="hint" role="status" data-lookup-status>Paste a place link to fill the name, address, and Dining option.</p>
+      </details>` : ""}
       ${field("Activity", `<input name="title" required maxlength="100" value="${esc(activity?.title)}" placeholder="Michael Jackson ONE – Cirque du Soleil" />`)}
       <label class="check"><input type="checkbox" name="dining" ${activity?.dining === true || (!activity && activityFilter === "dining") ? "checked" : ""} /><span>Dining</span></label>
       <label class="check"><input type="checkbox" name="dateTbd" ${unscheduled || (activity && !activity.date) ? "checked" : ""} /><span>Date TBD<small>Keep this in Unscheduled until you choose a day.</small></span></label>
@@ -498,6 +504,46 @@ function activitySheet(trip, activity, unscheduled = false) {
         updateTrip(trip.id, (t) => ({ ...t, activities: t.activities.filter((a) => a.id !== activity.id) })),
     },
     onReady(form) {
+      const lookupButton = form.querySelector("[data-lookup-map]");
+      lookupButton?.addEventListener("click", async () => {
+        const status = form.querySelector("[data-lookup-status]");
+        const input = form.elements.mapsLookup;
+        const submitted = input.value.trim();
+        const url = webLink(submitted);
+        if (!url) {
+          status.textContent = "Paste a Google Maps place link first.";
+          input.focus();
+          return;
+        }
+        lookupButton.disabled = true;
+        status.textContent = "Looking up place…";
+        try {
+          const res = await fetch("/api/maps-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Requested-With": "trip-planner" },
+            body: JSON.stringify({ url }),
+          });
+          const place = await res.json();
+          if (!res.ok) throw new Error(place.error || "Couldn't load that place. You can enter the details manually.");
+          if (!overlay.open || overlay.firstElementChild !== form) return;
+          if (input.value.trim() !== submitted) {
+            status.textContent = "The link changed. Press Fill details to look up the new place.";
+            return;
+          }
+          form.elements.title.value = place.title;
+          form.elements.location.value = place.location;
+          form.elements.mapUrl.value = place.mapUrl;
+          if (typeof place.dining === "boolean") form.elements.dining.checked = place.dining;
+          status.textContent = place.category
+            ? `Found ${place.category}. Review the details and Dining option, then save.`
+            : "Place name found. Check the address and Dining option before saving.";
+        } catch (error) {
+          status.textContent = error.message || "Couldn't reach Google Maps. Enter the activity details manually.";
+        } finally {
+          lookupButton.disabled = false;
+        }
+      });
+      if (fromMaps) form.elements.mapsLookup.focus();
       const dateTbd = form.elements.dateTbd;
       const schedule = form.querySelector("[data-schedule]");
       const syncSchedule = () => {
@@ -620,6 +666,7 @@ const actions = {
   "add-lodging": (trip) => lodgingSheet(trip),
   "edit-lodging": (trip, { id }) => lodgingSheet(trip, trip.lodging.find((l) => l.id === id)),
   "add-activity": (trip) => activitySheet(trip),
+  "add-from-maps": (trip) => activitySheet(trip, undefined, true, true),
   "add-unscheduled": (trip) => activitySheet(trip, undefined, true),
   "schedule-activity": (trip, { id }) => scheduleActivitySheet(trip, trip.activities.find((a) => a.id === id)),
   "edit-activity": (trip, { id }) => activitySheet(trip, trip.activities.find((a) => a.id === id)),

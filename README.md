@@ -27,6 +27,10 @@ pnpm check      # syntax
   Check **Dining** to show a food icon beside the activity title on the admin and shared itineraries.
   The **All / Activities / Dining** filters beside Itinerary show everything, non-dining activities,
   or dining. The selection also filters Unscheduled items.
+  **From Maps** opens an unscheduled activity with a place-link lookup. **Fill details** suggests the
+  name, address, map link, and Dining setting; review and save normally. This prototype reads Google
+  Maps page and place-preview metadata without an API key. Its format can change; if details are
+  unavailable, the form stays editable for manual entry. No activity is saved by the lookup itself.
   Choose **Date TBD** to keep an activity in **Unscheduled**, visible on both trip views. Use **Schedule**
   to choose a day and optional times, or edit a dated activity and choose **Date TBD** to move it back.
 - **Share link** (`/s/<token>`): no login. Shows one trip and the first names on it. The token is random,

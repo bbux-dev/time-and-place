@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env server.mjs",
     "test": "node --test tests/*.test.js",
-    "check": "node --check server.mjs && node --check infra/handler.js && node --check infra/worker.js && node --check site/app.js && node --check site/share.js && node --check site/domain.js && node --check site/share-sw.js && node --check scripts/cloudflare.mjs && node --check scripts/deploy.mjs && node --check scripts/verify-hosted.mjs",
+    "check": "node --check server.mjs && node --check infra/handler.js && node --check infra/maps.js && node --check infra/worker.js && node --check site/app.js && node --check site/share.js && node --check site/domain.js && node --check site/share-sw.js && node --check scripts/cloudflare.mjs && node --check scripts/deploy.mjs && node --check scripts/verify-hosted.mjs",
     "preflight": "node scripts/cloudflare.mjs",
     "verify": "node scripts/verify-hosted.mjs",
     "deploy": "node scripts/deploy.mjs"

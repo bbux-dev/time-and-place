@@ -328,7 +328,7 @@ a {
   flex-wrap: wrap;
   justify-content: flex-start;
 }
-.itinerary-head > .btn {
+.itinerary-actions {
   margin-left: auto;
 }
 .activity-filters {
@@ -472,6 +472,24 @@ a {
 }
 
 /* Sheets */
+.map-import {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.map-import summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+.map-import[open] summary {
+  margin-bottom: 10px;
+}
+.map-import .btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 dialog {
   border: 0;
   padding: 0;

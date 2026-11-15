@@ -5,6 +5,7 @@
 //   assets:  { read(name): body | null }                                - a file from site/
 
 import { emptyStore, isValidStore, sharedView } from "../site/domain.js";
+import { MapsPreviewError, previewMapsLink } from "./maps.js";
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -87,7 +88,7 @@ async function same(a, b) {
   return diff === 0;
 }
 
-export function createHandler({ storage, assets, user, password }) {
+export function createHandler({ storage, assets, user, password, mapsFetch = fetch }) {
   let chain = Promise.resolve();
   const exclusive = (fn) => {
     const run = chain.then(fn);
@@ -164,6 +165,12 @@ export function createHandler({ storage, assets, user, password }) {
       });
     }
 
+    if (pathname === "/api/maps-preview") {
+      if (request.method !== "POST") return json(405, { error: "Method not allowed" });
+      if (request.headers.get("x-requested-with") !== "trip-planner") return json(403, { error: "Forbidden" });
+      const body = await readJson(request);
+      return json(200, await previewMapsLink(body?.url, mapsFetch));
+    }
     if (pathname === "/api/store") {
       if (isRead) return json(200, (await storage.get()).store);
       if (request.method !== "PUT") return json(405, { error: "Method not allowed" });
@@ -191,6 +198,7 @@ export function createHandler({ storage, assets, user, password }) {
       return await route(request);
     } catch (err) {
       if (err instanceof HttpError) return json(err.status, { error: err.message });
+      if (err instanceof MapsPreviewError) return json(err.status, { error: err.message });
       console.error(err);
       return json(500, { error: "Server error" });
     }
