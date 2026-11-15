@@ -76,7 +76,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const password = process.env.ADMIN_PASSWORD || "changeme";
   const dataFile = path.resolve(process.env.DATA_FILE || "data/store.json");
   createApp({ dataFile, user, password }).listen(port, host, () => {
-    console.log(`Trip planner: http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
+    console.log(`Time and Place: http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
     console.log(`Login: ${user} / ${process.env.ADMIN_PASSWORD ? "(from ADMIN_PASSWORD)" : "changeme"}`);
     console.log(`Data:  ${dataFile}`);
   });

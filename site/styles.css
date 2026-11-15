@@ -416,6 +416,17 @@ a {
 }
 
 /* Share */
+.sample-banner {
+  margin: 0 2px 14px;
+}
+.sample-banner strong {
+  display: block;
+  font-size: 18px;
+}
+.sample-banner span {
+  color: var(--muted);
+  font-size: 13px;
+}
 .share-url {
   width: 100%;
   border: 1.5px solid var(--line);

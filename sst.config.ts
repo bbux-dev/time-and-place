@@ -7,7 +7,7 @@
 export default $config({
   app(input) {
     if (input.stage !== 'prod') {
-      throw new Error('Trip planner deploys only to the prod stage. Use pnpm deploy.');
+      throw new Error('Time and Place deploys only to the prod stage. Use pnpm deploy.');
     }
     if (!process.env.CLOUDFLARE_DEFAULT_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN) {
       throw new Error('Set CLOUDFLARE_DEFAULT_ACCOUNT_ID and CLOUDFLARE_API_TOKEN. See .env.example.');

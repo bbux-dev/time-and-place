@@ -1,4 +1,4 @@
-# Cloudflare deployment
+# Time and Place deployment
 
 ## What gets created
 
@@ -10,6 +10,11 @@ SST app **trips**, protected stage **prod**, in the existing Cloudflare account 
 - **R2 bucket** `Data`, private, bound to the Worker. `store.json` is the whole database. Every save also writes
   `backups/YYYY-MM-DD.json` (the last save of that day).
 - **Secret** `AdminPassword`, held in SST's encrypted state and bound to the Worker.
+
+Time and Place uses the existing `trips` infrastructure names and `trips.bxtn.dev` domain.
+The public showcase at `/sample` serves a fictional itinerary from `site/sample.json`. Both are static
+assets served without login; they never read or write R2 trip data. Deploy this app before publishing
+the showcase link on `bxtn.dev`.
 
 The only provider is Cloudflare. `home: 'cloudflare'` keeps SST state in R2, like `../gas-tracker`, `../settle-up`
 and `../bxtn-dev`. Sibling Workers and domains are outside this stack.

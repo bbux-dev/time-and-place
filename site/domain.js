@@ -62,11 +62,11 @@ export function parseImport(text) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("That file isn't a Trip Planner export (it isn't valid JSON).");
+    throw new Error("That file isn't a Time and Place export (it isn't valid JSON).");
   }
   const candidate = { rev: 0, people: data?.people, trips: data?.trips };
   if (!isValidStore(candidate)) {
-    throw new Error("That file isn't a Trip Planner export, or it has been damaged. Nothing was changed.");
+    throw new Error("That file isn't a Time and Place export, or it has been damaged. Nothing was changed.");
   }
   return { people: candidate.people, trips: candidate.trips };
 }

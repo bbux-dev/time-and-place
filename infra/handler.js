@@ -10,6 +10,7 @@ const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".webmanifest": "application/manifest+json",
@@ -124,6 +125,10 @@ export function createHandler({ storage, assets, user, password }) {
     const { pathname } = new URL(request.url);
     const isRead = request.method === "GET" || request.method === "HEAD";
 
+    // Fictional showcase data comes only from static assets, never the trip database.
+    if (isRead && (pathname === "/sample" || pathname === "/sample/")) return file("share.html", SHARED);
+    if (isRead && pathname === "/sample.json") return file("sample.json", SHARED);
+
     // Public: the shared itinerary. Anyone with the link can read that one trip.
     if (isRead && /^\/s\/[\w-]+$/.test(pathname)) return file("share.html", SHARED);
     // Each shared trip installs as its own home-screen app that opens straight to the itinerary.
@@ -155,7 +160,7 @@ export function createHandler({ storage, assets, user, password }) {
     // Everything below is the admin's.
     if (!(await isAdmin(request))) {
       return text(401, "Login required", {
-        "WWW-Authenticate": 'Basic realm="Trip Planner", charset="UTF-8"',
+        "WWW-Authenticate": 'Basic realm="Time and Place", charset="UTF-8"',
       });
     }
 

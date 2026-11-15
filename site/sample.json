@@ -1,0 +1,155 @@
+{
+  "trip": {
+    "name": "The Simpsons in Middle-earth",
+    "destination": "The Shire · Bree · Rivendell",
+    "startDate": "2027-06-12",
+    "endDate": "2027-06-16",
+    "lodging": [
+      {
+        "id": "shire-stay",
+        "name": "The Green Dragon guest rooms",
+        "checkIn": "2027-06-12T15:00",
+        "checkOut": "2027-06-14T09:00",
+        "confirmation": "SHIRE-742",
+        "notes": "Two adjoining rooms. Marge requested a high chair; Homer requested a room near the kitchen. Mind the low ceilings."
+      },
+      {
+        "id": "rivendell-stay",
+        "name": "Rivendell guest house",
+        "checkIn": "2027-06-14T15:00",
+        "checkOut": "2027-06-16T11:00",
+        "notes": "Elrond is hosting. Shoes off indoors. Bart's slingshot stays at reception."
+      }
+    ],
+    "activities": [
+      {
+        "id": "second-breakfast",
+        "title": "Second breakfast with the hobbits",
+        "date": "2027-06-12",
+        "time": "10:00",
+        "endTime": "11:30",
+        "location": "Hobbiton village green",
+        "notes": "Everyone comes hungry. Homer has already asked about third breakfast.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
+      },
+      {
+        "id": "bag-end",
+        "title": "Bag End garden tour",
+        "date": "2027-06-12",
+        "time": "14:00",
+        "endTime": "15:00",
+        "location": "Bag End, Hobbiton",
+        "notes": "Marge wants gardening tips from Sam. Lisa is bringing a notebook. Homer and Bart are investigating the bakery.",
+        "attendeeIds": ["marge", "lisa", "maggie"]
+      },
+      {
+        "id": "shire-wander",
+        "title": "Wander the Shire",
+        "date": "2027-06-13",
+        "time": "",
+        "endTime": "",
+        "location": "Bywater and the surrounding lanes",
+        "notes": "A day without a timetable. Picnic, pond, and a very small souvenir budget for Bart.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
+      },
+      {
+        "id": "pony-supper",
+        "title": "Date night at the Prancing Pony",
+        "date": "2027-06-13",
+        "time": "19:00",
+        "endTime": "21:00",
+        "location": "The Prancing Pony, Bree",
+        "notes": "Gandalf is babysitting. No fireworks until the kids are asleep. Book the return pony cart.",
+        "adultOnly": true,
+        "attendeeIds": ["homer", "marge"]
+      },
+      {
+        "id": "rivendell-arrival",
+        "title": "Journey to Rivendell",
+        "date": "2027-06-14",
+        "time": "09:00",
+        "endTime": "15:00",
+        "location": "The East Road",
+        "notes": "Pack lunch and plenty of snacks. Bart has been told that asking about arrival every five minutes will not make the cart faster.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
+      },
+      {
+        "id": "waterfall-walk",
+        "title": "Waterfall walk and Elvish poetry",
+        "date": "2027-06-14",
+        "time": "16:00",
+        "endTime": "17:30",
+        "location": "Rivendell gardens",
+        "notes": "Lisa's first choice. Take the easy garden path with Maggie.",
+        "attendeeIds": ["marge", "lisa", "maggie"]
+      },
+      {
+        "id": "sword-lesson",
+        "title": "Very supervised wooden-sword lesson",
+        "date": "2027-06-14",
+        "time": "16:00",
+        "endTime": "17:00",
+        "location": "Rivendell training courtyard",
+        "notes": "Aragorn insists on wooden swords. Marge agrees. Homer must also wear a helmet.",
+        "attendeeIds": ["homer", "bart"]
+      },
+      {
+        "id": "council",
+        "title": "Family council: what are we doing tomorrow?",
+        "date": "2027-06-15",
+        "time": "10:00",
+        "endTime": "10:30",
+        "location": "Elrond's courtyard",
+        "notes": "Choose something from Unscheduled. Lisa chairs; Marge has veto power over any route through Mordor.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
+      },
+      {
+        "id": "elven-music",
+        "title": "Music under the stars",
+        "date": "2027-06-15",
+        "time": "19:30",
+        "endTime": "20:30",
+        "location": "The Hall of Fire, Rivendell",
+        "notes": "Lisa is hoping they'll let her sit in on saxophone. Maggie will probably sleep through it.",
+        "attendeeIds": ["marge", "lisa", "maggie"]
+      },
+      {
+        "id": "farewell",
+        "title": "Farewell breakfast and back to Springfield",
+        "date": "2027-06-16",
+        "time": "09:00",
+        "endTime": "11:00",
+        "location": "Rivendell guest house",
+        "notes": "Check for forgotten luggage, borrowed cloaks, and any rings Bart may have picked up.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
+      },
+      {
+        "id": "eagle-ride",
+        "title": "Scenic eagle ride",
+        "date": "",
+        "time": "",
+        "endTime": "",
+        "location": "Above the Misty Mountains",
+        "notes": "Weather dependent, and entirely up to the eagles. Homer wants to know the baggage allowance.",
+        "attendeeIds": ["homer", "marge", "bart", "lisa"]
+      },
+      {
+        "id": "bouldering",
+        "title": "Bouldering with Gimli",
+        "date": "",
+        "time": "",
+        "endTime": "",
+        "location": "Low rocks outside Rivendell",
+        "notes": "If the rocks are dry and Gimli is free. Bart wants a challenge; Lisa wants to identify the rocks first. Bring a picnic for the rest of the family.",
+        "attendeeIds": ["bart", "lisa"]
+      }
+    ]
+  },
+  "people": [
+    { "id": "homer", "name": "Homer" },
+    { "id": "marge", "name": "Marge" },
+    { "id": "bart", "name": "Bart" },
+    { "id": "lisa", "name": "Lisa" },
+    { "id": "maggie", "name": "Maggie" }
+  ]
+}

@@ -60,7 +60,7 @@ test("admin pages and data need the login", async () => {
 test("the admin can load the page and an empty store", async () => {
   const page = await fetch(base + "/", { headers: AUTH });
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /Trip Planner/);
+  assert.match(await page.text(), /Time and Place/);
   assert.deepEqual(await (await fetch(`${base}/api/store`, { headers: AUTH })).json(), {
     rev: 0,
     people: [],
@@ -135,4 +135,33 @@ test("stopping sharing kills the link", async () => {
   next.trips[0].shareToken = null;
   assert.equal((await put(next)).status, 200);
   assert.equal((await fetch(`${base}/api/shared/${TOKEN}`)).status, 404);
+});
+
+test("the fictional sample is public and leaves real trips untouched", async () => {
+  const before = await (await fetch(`${base}/api/store`, { headers: AUTH })).json();
+  for (const url of ["/sample", "/sample/"]) {
+    const page = await fetch(base + url);
+    assert.equal(page.status, 200);
+    assert.equal(page.headers.get("www-authenticate"), null);
+    assert.match(await page.text(), /Time and Place/);
+    assert.equal((await fetch(base + url, { method: "HEAD" })).status, 200);
+  }
+  const response = await fetch(`${base}/sample.json`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /application\/json/);
+  const sample = await response.json();
+  assert.equal(sample.trip.name, "The Simpsons in Middle-earth");
+  assert.deepEqual(sample.people.map((p) => p.name), ["Homer", "Marge", "Bart", "Lisa", "Maggie"]);
+  assert.ok(sample.trip.activities.some((a) => !a.date), "the sample shows unscheduled activities");
+  const ids = new Set(sample.people.map((p) => p.id));
+  for (const activity of sample.trip.activities) {
+    assert.ok(activity.attendeeIds.every((id) => ids.has(id)));
+    assert.ok(!activity.date || (activity.date >= sample.trip.startDate && activity.date <= sample.trip.endDate));
+  }
+  for (const url of ["/sample", "/sample.json"]) {
+    const write = await fetch(base + url, { method: "PUT", body: "{}" });
+    assert.equal(write.status, 401, "anonymous sample visits cannot write");
+  }
+  assert.deepEqual(await (await fetch(`${base}/api/store`, { headers: AUTH })).json(), before);
+  assert.equal((await fetch(`${base}/api/store`)).status, 401);
 });

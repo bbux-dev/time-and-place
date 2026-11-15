@@ -1,4 +1,4 @@
-# Trip Planner
+# Time and Place
 
 Plan a group trip: who is coming, where you are staying, and who is going to which activity.
 One admin edits behind a login; everyone else gets a read-only share link.
@@ -28,6 +28,10 @@ pnpm check      # syntax
   to choose a day and optional times, or edit a dated activity and choose **Date TBD** to move it back.
 - **Share link** (`/s/<token>`): no login. Shows one trip and the first names on it. The token is random,
   made when you press **Create share link**; **New link** or **Stop sharing** kills the old one.
+- **Public sample** (`/sample`): the Simpsons visit Middle-earth in a fictional, read-only itinerary.
+  Try it locally at <http://127.0.0.1:4181/sample>. It uses `site/sample.json` and the shared itinerary view,
+  without reading or changing real trips or linking to the admin login. The sample is an online preview;
+  installation and offline support belong to real share links.
 - **PWA**: both pages can be added to a phone's home screen. A shared itinerary installs as its own app and,
   once it has loaded, still opens without signal (showing the last copy). The admin page is never cached.
   Offline support needs HTTPS or `localhost`, so it starts working for phones once the site is hosted.
@@ -55,5 +59,6 @@ Cloudflare only, through SST: one Worker on `trips.bxtn.dev` and one R2 bucket. 
 - `site/domain.js`: trip rules and formatting, shared by both pages and the server.
 - `site/app.js` + `index.html`: the admin page.
 - `site/share.js` + `share.html`: the shared itinerary.
+- `site/sample.json`: fictional public sample data, separate from the trip database.
 - `site/share-sw.js`: offline copy of shared itineraries (network first).
 - `site/styles.css`: phone-sized layout, light and dark.

@@ -17,15 +17,18 @@ import {
 } from "./domain.js";
 
 const screen = document.querySelector("#screen");
-const token = location.pathname.split("/").pop();
+const isSample = /^\/sample\/?$/.test(location.pathname);
+const token = isSample ? "sample" : location.pathname.split("/").pop();
 const ME_KEY = `trip-planner:me:${token}`;
 
 // Installable per trip, and readable without signal once it has loaded.
-const manifest = document.createElement("link");
-manifest.rel = "manifest";
-manifest.href = `/s/${encodeURIComponent(token)}/manifest.webmanifest`;
-document.head.append(manifest);
-navigator.serviceWorker?.register("/share-sw.js", { scope: "/s/" }).catch(() => {});
+if (!isSample) {
+  const manifest = document.createElement("link");
+  manifest.rel = "manifest";
+  manifest.href = `/s/${encodeURIComponent(token)}/manifest.webmanifest`;
+  document.head.append(manifest);
+  navigator.serviceWorker?.register("/share-sw.js", { scope: "/s/" }).catch(() => {});
+}
 
 let data = null;
 let me = null; // person id, or null for "everyone"
@@ -98,13 +101,14 @@ function activityRow(activity, when, live) {
 function render() {
   const { trip, people } = data;
   const today = localDate();
-  const live = liveStatus(trip.activities, today, localTime(), me);
-  const done = finishedToday(trip.activities, today, localTime());
+  const live = isSample ? new Map() : liveStatus(trip.activities, today, localTime(), me);
+  const done = isSample ? new Set() : finishedToday(trip.activities, today, localTime());
   const unscheduled = trip.activities.filter((a) => !a.date);
   const mineCount = me ? trip.activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
   const days = activitiesByDay(trip.activities)
     .map((day) => {
-      const when = day.date === today ? " today" : day.date < today ? " past" : "";
+      // Keep the fictional itinerary readable even after its sample dates have passed.
+      const when = isSample ? "" : day.date === today ? " today" : day.date < today ? " past" : "";
       return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
         .map((a) => activityRow(a, when + (done.has(a.id) ? " past" : ""), live.get(a.id)))
         .join("")}`;
@@ -125,6 +129,7 @@ function render() {
       </div>`
     : "";
   screen.innerHTML = `
+    ${isSample ? `<div class="sample-banner"><strong>Time and Place</strong><span>Fictional sample itinerary</span></div>` : ""}
     ${offline ? `<p class="hint" style="margin:0 2px 10px">You're offline. This is the last copy that loaded.</p>` : ""}
     <div class="card hero">
       <div class="eyebrow">${esc(trip.destination || "Trip")}</div>
@@ -139,7 +144,7 @@ function render() {
       <div class="head section-head"><span class="label">Unscheduled · ${unscheduled.length}</span></div>
       ${unscheduled.map((a) => activityRow(a, " unscheduled")).join("")}
     </section>` : ""}`;
-  document.title = trip.name;
+  document.title = `${trip.name} · Time and Place`;
 }
 
 screen.addEventListener("click", (event) => {
@@ -151,7 +156,7 @@ screen.addEventListener("click", (event) => {
 });
 
 try {
-  const res = await fetch(`/api/shared/${encodeURIComponent(token)}`);
+  const res = await fetch(isSample ? "/sample.json" : `/api/shared/${encodeURIComponent(token)}`);
   if (res.status === 404) {
     screen.innerHTML = `<p class="empty">This link is no longer active. Ask the trip organizer for a new one.</p>`;
   } else {

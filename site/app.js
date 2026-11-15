@@ -88,7 +88,7 @@ function homeView() {
       </a>`;
     })
     .join("");
-  return `<div class="top"><div class="logo">Trips</div></div>
+  return `<div class="top"><div class="logo">Time and Place</div></div>
     ${cards || `<p class="empty">No trips yet. Create one to start adding people, lodging and activities.</p>`}
     <button class="btn primary block" data-action="new-trip">New trip</button>
     <div class="card" style="margin-top:22px">
@@ -236,7 +236,7 @@ function tripView(trip) {
 function render() {
   const trip = currentTrip();
   screen.innerHTML = trip ? tripView(trip) : homeView();
-  document.title = trip ? `${trip.name} · Trip Planner` : "Trip Planner";
+  document.title = trip ? `${trip.name} · Time and Place` : "Time and Place";
 }
 
 // ---------- sheets ----------
@@ -620,7 +620,7 @@ const actions = {
     const blob = new Blob([JSON.stringify(exportData(store), null, 2)], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `trip-planner-${localDate()}.json`;
+    link.download = `time-and-place-${localDate()}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     toast("Exported");

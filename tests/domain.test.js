@@ -228,7 +228,7 @@ test("an export can be imported back unchanged, share links included", () => {
 
 test("files that are not exports are refused with a readable reason", () => {
   for (const bad of ["", "not json", "[]", "null", "{}", JSON.stringify({ people: [], trips: "x" }), JSON.stringify({ people: [{ id: 1 }], trips: [] })]) {
-    assert.throws(() => parseImport(bad), /isn't a Trip Planner export/, bad);
+    assert.throws(() => parseImport(bad), /isn't a Time and Place export/, bad);
   }
   assert.deepEqual(parseImport(JSON.stringify({ people: [], trips: [] })), { people: [], trips: [] });
 });

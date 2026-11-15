@@ -81,6 +81,26 @@ test("without a configured password nothing is served", async () => {
   }
 });
 
+test("the public sample works without accessing the real R2 database", async () => {
+  const env = makeEnv({
+    Data: {
+      get() { assert.fail("sample routes must not read R2"); },
+      put() { assert.fail("sample routes must not write R2"); },
+    },
+  });
+  for (const path of ["/sample", "/sample/", "/sample.json"]) {
+    const response = await call(env, path);
+    assert.equal(response.status, 200, path);
+    assert.equal(response.headers.get("www-authenticate"), null);
+    if (path.endsWith(".json")) {
+      assert.equal((await response.json()).trip.name, "The Simpsons in Middle-earth");
+    } else {
+      assert.match(await response.text(), /Time and Place/);
+    }
+  }
+  assert.equal((await call(env, "/api/store")).status, 401);
+});
+
 test("the admin page and data need the login; pages come from the asset binding", async () => {
   const env = makeEnv();
   for (const path of ["/", "/app.js", "/index.html", "/api/store"]) {
@@ -90,7 +110,7 @@ test("the admin page and data need the login; pages come from the asset binding"
   assert.equal(page.status, 200);
   assert.match(page.headers.get("content-type"), /text\/html/);
   assert.match(page.headers.get("strict-transport-security"), /max-age/);
-  assert.match(await page.text(), /Trip Planner/);
+  assert.match(await page.text(), /Time and Place/);
   assert.equal((await call(env, "/nope.js", { headers: AUTH })).status, 404);
 });
 

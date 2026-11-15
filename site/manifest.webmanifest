@@ -1,6 +1,6 @@
 {
-  "name": "Trip Planner",
-  "short_name": "Trips",
+  "name": "Time and Place",
+  "short_name": "Time and Place",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

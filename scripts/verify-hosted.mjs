@@ -21,7 +21,7 @@ async function verify() {
   const write = await get('/api/store', { method: 'PUT', body: '{}', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'trip-planner' } });
   assert.equal(write.status, 401, 'Saving needs the admin login');
 
-  for (const path of ['/styles.css', '/share.js', '/domain.js', '/share-sw.js', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png']) {
+  for (const path of ['/styles.css', '/share.js', '/domain.js', '/sample.json', '/share-sw.js', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png']) {
     const response = await get(path);
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get('cache-control') || '', /no-transform/, path);
@@ -34,6 +34,11 @@ async function verify() {
   const sharePage = await get('/s/zzzzzzzzzzzzzzzzzzzzzz');
   assert.equal(sharePage.status, 200, 'Share page shell');
   assert.match(sharePage.headers.get('x-robots-tag') || '', /noindex/);
+
+  const samplePage = await get('/sample');
+  assert.equal(samplePage.status, 200, 'Public sample needs no login');
+  assert.equal(samplePage.headers.get('www-authenticate'), null);
+  assert.equal(await samplePage.text(), await readFile(new URL('../site/share.html', import.meta.url), 'utf8'));
 
   const http = await fetch('http://trips.bxtn.dev/', { redirect: 'manual', signal: AbortSignal.timeout(20_000) });
   assert.ok([301, 308].includes(http.status), 'HTTP redirects');
