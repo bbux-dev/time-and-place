@@ -148,6 +148,24 @@ export function liveStatus(activities, today, time, me = null) {
   return status;
 }
 
+/**
+ * Ids of today's activities that are over. With an end time: once it has passed (one that
+ * runs past midnight is never over today). Without one: once a later activity has started.
+ * Untimed activities are never over.
+ */
+export function finishedToday(activities, today, time) {
+  const timed = activities.filter((a) => a.date === today && a.time);
+  const done = new Set();
+  for (const activity of timed) {
+    if (activity.time > time) continue;
+    const over = activity.endTime
+      ? activity.endTime >= activity.time && activity.endTime < time
+      : timed.some((other) => other.time > activity.time && other.time <= time);
+    if (over) done.add(activity.id);
+  }
+  return done;
+}
+
 /** Who is and is not going, in trip order. */
 export function attendance(activity, members) {
   const going = members.filter((p) => activity.attendeeIds.includes(p.id));

@@ -4,6 +4,7 @@ import {
   activitiesByDay,
   attendance,
   esc,
+  finishedToday,
   fmtDateRange,
   fmtDateTime,
   fmtDay,
@@ -92,12 +93,13 @@ function render() {
   const { trip, people } = data;
   const today = localDate();
   const live = liveStatus(trip.activities, today, localTime(), me);
+  const done = finishedToday(trip.activities, today, localTime());
   const mineCount = me ? trip.activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
   const days = activitiesByDay(trip.activities)
     .map((day) => {
       const when = day.date === today ? " today" : day.date < today ? " past" : "";
       return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
-        .map((a) => activityRow(a, when, live.get(a.id)))
+        .map((a) => activityRow(a, when + (done.has(a.id) ? " past" : ""), live.get(a.id)))
         .join("")}`;
     })
     .join("");

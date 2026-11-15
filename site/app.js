@@ -8,11 +8,13 @@ import {
   deletePerson,
   enforceAdultOnly,
   esc,
+  finishedToday,
   fmtDateRange,
   fmtDateTime,
   fmtDay,
   fmtTime,
   localDate,
+  localTime,
   mapsUrl,
   randomId,
   removePersonFromTrip,
@@ -181,11 +183,12 @@ function activityRow(activity, members, when = "") {
 function tripView(trip) {
   const members = tripPeople(trip, store.people);
   const today = localDate();
+  const done = finishedToday(trip.activities, today, localTime());
   const days = activitiesByDay(trip.activities)
     .map((day) => {
       const when = day.date === today ? " today" : day.date < today ? " past" : "";
       return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
-        .map((a) => activityRow(a, members, when))
+        .map((a) => activityRow(a, members, when + (done.has(a.id) ? " past" : "")))
         .join("")}`;
     })
     .join("");

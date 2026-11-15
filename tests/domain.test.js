@@ -7,6 +7,7 @@ import {
   defaultAttendees,
   deletePerson,
   enforceAdultOnly,
+  finishedToday,
   fmtDateRange,
   fmtDateTime,
   fmtDay,
@@ -160,4 +161,23 @@ test("today's activities are labelled now and up next", () => {
   assert.deepEqual(at("19:15", "kid"), { show: "now" }, "only the chosen person's activities count");
   assert.deepEqual(at("12:00", "kid"), { show: "next" });
   assert.deepEqual(Object.fromEntries(liveStatus(acts, "2027-06-20", "12:00")), {}, "nothing outside today");
+});
+
+test("today's finished activities are identified", () => {
+  const day = "2027-06-13";
+  const acts = [
+    { id: "pool", title: "Pool", date: day, time: "", attendeeIds: [] },
+    { id: "brunch", title: "Brunch", date: day, time: "10:00", endTime: "11:00", attendeeIds: [] },
+    { id: "walk", title: "Walk", date: day, time: "13:00", endTime: "", attendeeIds: [] },
+    { id: "show", title: "Show", date: day, time: "19:00", endTime: "20:30", attendeeIds: [] },
+    { id: "bar", title: "Bar", date: day, time: "21:30", endTime: "00:30", attendeeIds: [] },
+    { id: "old", title: "Yesterday", date: "2027-06-12", time: "09:00", endTime: "10:00", attendeeIds: [] },
+  ];
+  const at = (time) => [...finishedToday(acts, day, time)].sort();
+  assert.deepEqual(at("10:30"), [], "in progress is not finished");
+  assert.deepEqual(at("11:00"), [], "not finished at the exact end time");
+  assert.deepEqual(at("11:01"), ["brunch"]);
+  assert.deepEqual(at("15:00"), ["brunch"], "no end time: not finished until something later starts");
+  assert.deepEqual(at("19:00"), ["brunch", "walk"]);
+  assert.deepEqual(at("23:59"), ["brunch", "show", "walk"], "past-midnight and untimed ones never finish today");
 });
