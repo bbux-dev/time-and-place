@@ -24,6 +24,7 @@
     "activities": [
       {
         "id": "second-breakfast",
+        "dining": true,
         "title": "Second breakfast with the hobbits",
         "date": "2027-06-12",
         "time": "10:00",
@@ -54,6 +55,7 @@
       },
       {
         "id": "pony-supper",
+        "dining": true,
         "title": "Date night at the Prancing Pony",
         "date": "2027-06-13",
         "time": "19:00",
@@ -115,6 +117,7 @@
       },
       {
         "id": "farewell",
+        "dining": true,
         "title": "Farewell breakfast and back to Springfield",
         "date": "2027-06-16",
         "time": "09:00",

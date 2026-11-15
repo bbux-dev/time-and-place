@@ -8,6 +8,7 @@ import {
   deletePerson,
   enforceAdultOnly,
   exportData,
+  filterActivities,
   finishedToday,
   fmtDateRange,
   fmtDateTime,
@@ -113,6 +114,34 @@ test("attendance reports who is and is not going", () => {
   const bar = attendance(trip.activities[0], members);
   assert.equal(bar.everyone, false);
   assert.deepEqual(bar.notGoing.map((p) => p.name), ["Kid"]);
+});
+
+test("dining is optional for older activities and survives sharing and export/import", () => {
+  const withDining = (dining) => ({
+    ...store,
+    trips: [{ ...trip, activities: [{ ...trip.activities[0], dining }] }],
+  });
+  assert.equal(isValidStore(store), true, "existing activities need no migration");
+  for (const dining of [true, false]) {
+    const marked = withDining(dining);
+    assert.equal(isValidStore(marked), true);
+    assert.equal(sharedView(marked, TOKEN).trip.activities[0].dining, dining);
+    assert.equal(parseImport(JSON.stringify(exportData(marked))).trips[0].activities[0].dining, dining);
+  }
+  assert.equal(isValidStore(withDining("false")), false, "the flag must be a boolean");
+});
+
+test("activity filters include older activities and unscheduled meals without changing their order", () => {
+  const activities = [
+    { id: "show" },
+    { id: "meal", date: "2027-06-13", dining: true },
+    { id: "hike", dining: false },
+    { id: "maybe-dinner", date: "", dining: true },
+  ];
+  assert.deepEqual(filterActivities(activities, "all"), activities);
+  assert.deepEqual(filterActivities(activities, "activities").map((a) => a.id), ["show", "hike"]);
+  assert.deepEqual(filterActivities(activities, "dining").map((a) => a.id), ["meal", "maybe-dinner"]);
+  assert.equal(activities.length, 4);
 });
 
 test("a share link exposes one trip and only the names of people on it", () => {

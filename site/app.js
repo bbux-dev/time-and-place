@@ -9,6 +9,7 @@ import {
   enforceAdultOnly,
   esc,
   exportData,
+  filterActivities,
   finishedToday,
   fmtDateRange,
   fmtDateTime,
@@ -31,6 +32,7 @@ const toastEl = document.querySelector("#toast");
 let store = null;
 let saving = Promise.resolve();
 let toastTimer;
+let activityFilter = "all";
 
 function toast(message) {
   toastEl.textContent = message;
@@ -183,14 +185,14 @@ function whoLine(activity, members) {
 
 function activityRow(activity, members, when = "") {
   const details = `
-      <div class="name">${esc(activity.title)} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
+      <div class="name">${esc(activity.title)} ${activity.dining === true ? `<svg class="dining-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Dining"><title>Dining</title><path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v19M20 22V3c-4 0-6 5-6 9h6" /></svg>` : ""} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
       ${activity.location || activity.mapUrl ? `<div class="muted">${esc(activity.location)}${activity.mapUrl ? ` <span class="tag off">Map link</span>` : ""}</div>` : ""}
       <div class="who">${whoLine(activity, members)}</div>
       ${!activity.date && activity.notes ? `<div class="pre muted activity-notes">${esc(activity.notes)}</div>` : ""}`;
   if (!activity.date) {
     return `<div class="act unscheduled">
       <div class="time">Date TBD<button class="btn small schedule-button" data-action="schedule-activity" data-id="${esc(activity.id)}" aria-label="Schedule ${esc(activity.title)}">Schedule</button></div>
-      <button class="activity-details" data-action="edit-activity" data-id="${esc(activity.id)}" aria-label="Edit ${esc(activity.title)}">${details}</button>
+      <button class="activity-details" data-action="edit-activity" data-id="${esc(activity.id)}" aria-label="Edit ${esc(activity.title)}${activity.dining === true ? " (Dining)" : ""}">${details}</button>
     </div>`;
   }
   return `<button class="act${when}" data-action="edit-activity" data-id="${esc(activity.id)}">
@@ -203,8 +205,10 @@ function tripView(trip) {
   const members = tripPeople(trip, store.people);
   const today = localDate();
   const done = finishedToday(trip.activities, today, localTime());
-  const unscheduled = trip.activities.filter((a) => !a.date);
-  const days = activitiesByDay(trip.activities)
+  const activities = filterActivities(trip.activities, activityFilter);
+  const unscheduled = activities.filter((a) => !a.date);
+  const category = activityFilter === "dining" ? "dining activities" : "activities";
+  const days = activitiesByDay(activities)
     .map((day) => {
       const when = day.date === today ? " today" : day.date < today ? " past" : "";
       return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
@@ -224,11 +228,17 @@ function tripView(trip) {
     </div>
     ${peopleCard(trip)}
     ${lodgingCard(trip)}
-    <div class="head section-head"><span class="label">Itinerary</span><button class="btn small primary" data-action="add-activity">+ Activity</button></div>
-    ${days || `<p class="empty">No scheduled activities yet. Add an activity or schedule one from below.</p>`}
+    <div class="head section-head itinerary-head">
+      <span class="label">Itinerary</span>
+      <div class="activity-filters" role="group" aria-label="Activity type">
+        ${[["all", "All"], ["activities", "Activities"], ["dining", "Dining"]].map(([value, label]) => `<button class="activity-filter" data-action="filter-activities" data-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
+      </div>
+      <button class="btn small primary" data-action="add-activity">+ Activity</button>
+    </div>
+    ${days || `<p class="empty">${activityFilter === "all" ? "No scheduled activities yet. Add an activity or schedule one from below." : `No ${category} scheduled.`}</p>`}
     <section aria-label="Unscheduled activities">
       <div class="head section-head"><span class="label">Unscheduled · ${unscheduled.length}</span><button class="btn small" data-action="add-unscheduled">+ Activity</button></div>
-      ${unscheduled.map((a) => activityRow(a, members)).join("") || `<p class="empty">Have something in mind? Add it here and choose a day later.</p>`}
+      ${unscheduled.map((a) => activityRow(a, members)).join("") || `<p class="empty">${activityFilter === "all" ? "Have something in mind? Add it here and choose a day later." : `No unscheduled ${category}.`}</p>`}
     </section>
     ${shareCard(trip)}`;
 }
@@ -453,6 +463,7 @@ function activitySheet(trip, activity, unscheduled = false) {
     title: activity ? "Edit activity" : "Add activity",
     body: `
       ${field("Activity", `<input name="title" required maxlength="100" value="${esc(activity?.title)}" placeholder="Michael Jackson ONE – Cirque du Soleil" />`)}
+      <label class="check"><input type="checkbox" name="dining" ${activity?.dining === true || (!activity && activityFilter === "dining") ? "checked" : ""} /><span>Dining</span></label>
       <label class="check"><input type="checkbox" name="dateTbd" ${unscheduled || (activity && !activity.date) ? "checked" : ""} /><span>Date TBD<small>Keep this in Unscheduled until you choose a day.</small></span></label>
       <fieldset class="schedule-fields" data-schedule aria-label="Schedule">
         ${field("Date", `<input name="date" type="date" required min="${esc(trip.startDate)}" max="${esc(trip.endDate)}" value="${esc(activity?.date || trip.startDate)}" />`)}
@@ -545,6 +556,7 @@ function activitySheet(trip, activity, unscheduled = false) {
         location: values.location,
         mapUrl,
         notes: values.notes,
+        dining: values.dining === "on",
         adultOnly,
         attendeeIds: adultOnly ? adultsOnly(ids, store.people) : ids,
       };
@@ -586,6 +598,10 @@ function scheduleActivitySheet(trip, activity) {
 const setShare = (trip, shareToken) => updateTrip(trip.id, (t) => ({ ...t, shareToken }));
 
 const actions = {
+  "filter-activities": (_trip, { filter }) => {
+    activityFilter = filter;
+    render();
+  },
   "new-trip": () => tripSheet(),
   "edit-trip": (trip) => tripSheet(trip),
   "add-person": (trip) => personSheet(trip),
@@ -663,6 +679,7 @@ screen.addEventListener("change", async (event) => {
   toast("Imported");
 });
 window.addEventListener("hashchange", () => {
+  activityFilter = "all";
   render();
   screen.scrollTop = 0;
 });

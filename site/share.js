@@ -4,6 +4,7 @@ import {
   activitiesByDay,
   attendance,
   esc,
+  filterActivities,
   finishedToday,
   fmtDateRange,
   fmtDateTime,
@@ -33,6 +34,7 @@ if (!isSample) {
 let data = null;
 let me = null; // person id, or null for "everyone"
 let offline = false;
+let activityFilter = "all";
 
 function remember(id) {
   try {
@@ -88,6 +90,7 @@ function activityRow(activity, when, live) {
     <div class="time">${activity.date ? `${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}` : "Date TBD"}</div>
     <div>
       <div class="name">${esc(activity.title)}
+        ${activity.dining === true ? `<svg class="dining-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Dining"><title>Dining</title><path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v19M20 22V3c-4 0-6 5-6 9h6" /></svg>` : ""}
         ${live ? `<span class="tag solid">${LIVE[live]}</span>` : ""}
         ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}
         ${mine ? "" : `<span class="tag off">Not you</span>`}</div>
@@ -103,9 +106,11 @@ function render() {
   const today = localDate();
   const live = isSample ? new Map() : liveStatus(trip.activities, today, localTime(), me);
   const done = isSample ? new Set() : finishedToday(trip.activities, today, localTime());
-  const unscheduled = trip.activities.filter((a) => !a.date);
-  const mineCount = me ? trip.activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
-  const days = activitiesByDay(trip.activities)
+  const activities = filterActivities(trip.activities, activityFilter);
+  const unscheduled = activities.filter((a) => !a.date);
+  const mineCount = me ? activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
+  const category = activityFilter === "dining" ? "dining activities" : "activities";
+  const days = activitiesByDay(activities)
     .map((day) => {
       // Keep the fictional itinerary readable even after its sample dates have passed.
       const when = isSample ? "" : day.date === today ? " today" : day.date < today ? " past" : "";
@@ -123,7 +128,7 @@ function render() {
         </div>
         <p class="hint">${
           me
-            ? `You're in ${mineCount} of ${trip.activities.length} ${trip.activities.length === 1 ? "activity" : "activities"}. The rest are faded.`
+            ? `You're in ${mineCount} of ${activities.length} ${activities.length === 1 ? "activity" : "activities"}. The rest are faded.`
             : "Pick your name to highlight what you're going to."
         }</p>
       </div>`
@@ -138,8 +143,13 @@ function render() {
     </div>
     ${lodgingCard(trip.lodging)}
     ${pills}
-    <div class="head section-head"><span class="label">Itinerary</span></div>
-    ${days || `<p class="empty">No scheduled activities yet. Check back soon.</p>`}
+    <div class="head section-head itinerary-head">
+      <span class="label">Itinerary</span>
+      <div class="activity-filters" role="group" aria-label="Activity type">
+        ${[["all", "All"], ["activities", "Activities"], ["dining", "Dining"]].map(([value, label]) => `<button class="activity-filter" data-activity-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
+      </div>
+    </div>
+    ${days || `<p class="empty">${activityFilter === "all" ? "No scheduled activities yet. Check back soon." : `No ${category} scheduled.`}</p>`}
     ${unscheduled.length ? `<section aria-label="Unscheduled activities">
       <div class="head section-head"><span class="label">Unscheduled · ${unscheduled.length}</span></div>
       ${unscheduled.map((a) => activityRow(a, " unscheduled")).join("")}
@@ -148,6 +158,12 @@ function render() {
 }
 
 screen.addEventListener("click", (event) => {
+  const filter = event.target.closest("[data-activity-filter]");
+  if (filter) {
+    activityFilter = filter.dataset.activityFilter;
+    render();
+    return;
+  }
   const pill = event.target.closest("[data-me]");
   if (!pill) return;
   me = pill.dataset.me || null;

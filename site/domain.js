@@ -41,6 +41,7 @@ export function isValidStore(store) {
           isStr(a.id) &&
           isStr(a.title) &&
           isStr(a.date) &&
+          (a.dining === undefined || typeof a.dining === "boolean") &&
           Array.isArray(a.attendeeIds) &&
           a.attendeeIds.every(isStr),
       ) &&
@@ -134,6 +135,13 @@ export function activitiesByDay(activities) {
     else days.push({ date: activity.date, items: [activity] });
   }
   return days;
+}
+
+/** Older activities without a dining flag are ordinary activities. */
+export function filterActivities(activities, filter = "all") {
+  return activities.filter((a) =>
+    filter === "dining" ? a.dining === true : filter === "activities" ? a.dining !== true : true,
+  );
 }
 
 const pad2 = (n) => String(n).padStart(2, "0");
