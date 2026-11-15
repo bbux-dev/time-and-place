@@ -361,6 +361,37 @@ a {
   font-size: 14px;
   margin-top: 4px;
 }
+.act.unscheduled {
+  border: 1px dashed var(--line);
+}
+.activity-details {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.schedule-button {
+  display: block;
+  margin-top: 10px;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.activity-notes {
+  margin-top: 6px;
+}
+.schedule-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.schedule-title {
+  margin: 0 0 14px;
+  font-weight: 700;
+}
 /* Today stands out; days that are over step back. */
 .day.today {
   color: var(--accent);

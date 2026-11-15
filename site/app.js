@@ -182,13 +182,20 @@ function whoLine(activity, members) {
 }
 
 function activityRow(activity, members, when = "") {
-  return `<button class="act${when}" data-action="edit-activity" data-id="${esc(activity.id)}">
-    <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
-    <div>
+  const details = `
       <div class="name">${esc(activity.title)} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
       ${activity.location || activity.mapUrl ? `<div class="muted">${esc(activity.location)}${activity.mapUrl ? ` <span class="tag off">Map link</span>` : ""}</div>` : ""}
       <div class="who">${whoLine(activity, members)}</div>
-    </div>
+      ${!activity.date && activity.notes ? `<div class="pre muted activity-notes">${esc(activity.notes)}</div>` : ""}`;
+  if (!activity.date) {
+    return `<div class="act unscheduled">
+      <div class="time">Date TBD<button class="btn small schedule-button" data-action="schedule-activity" data-id="${esc(activity.id)}" aria-label="Schedule ${esc(activity.title)}">Schedule</button></div>
+      <button class="activity-details" data-action="edit-activity" data-id="${esc(activity.id)}" aria-label="Edit ${esc(activity.title)}">${details}</button>
+    </div>`;
+  }
+  return `<button class="act${when}" data-action="edit-activity" data-id="${esc(activity.id)}">
+    <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
+    <div>${details}</div>
   </button>`;
 }
 
@@ -196,6 +203,7 @@ function tripView(trip) {
   const members = tripPeople(trip, store.people);
   const today = localDate();
   const done = finishedToday(trip.activities, today, localTime());
+  const unscheduled = trip.activities.filter((a) => !a.date);
   const days = activitiesByDay(trip.activities)
     .map((day) => {
       const when = day.date === today ? " today" : day.date < today ? " past" : "";
@@ -217,7 +225,11 @@ function tripView(trip) {
     ${peopleCard(trip)}
     ${lodgingCard(trip)}
     <div class="head section-head"><span class="label">Itinerary</span><button class="btn small primary" data-action="add-activity">+ Activity</button></div>
-    ${days || `<p class="empty">No activities yet. Add the shows and outings, then choose who is going to each.</p>`}
+    ${days || `<p class="empty">No scheduled activities yet. Add an activity or schedule one from below.</p>`}
+    <section aria-label="Unscheduled activities">
+      <div class="head section-head"><span class="label">Unscheduled · ${unscheduled.length}</span><button class="btn small" data-action="add-unscheduled">+ Activity</button></div>
+      ${unscheduled.map((a) => activityRow(a, members)).join("") || `<p class="empty">Have something in mind? Add it here and choose a day later.</p>`}
+    </section>
     ${shareCard(trip)}`;
 }
 
@@ -431,7 +443,7 @@ function lodgingSheet(trip, lodging) {
   });
 }
 
-function activitySheet(trip, activity) {
+function activitySheet(trip, activity, unscheduled = false) {
   const members = tripPeople(trip, store.people);
   const minors = new Set(members.filter((p) => !p.adult).map((p) => p.id));
   const selected = new Set(activity ? activity.attendeeIds : defaultAttendees(trip, store.people));
@@ -441,11 +453,14 @@ function activitySheet(trip, activity) {
     title: activity ? "Edit activity" : "Add activity",
     body: `
       ${field("Activity", `<input name="title" required maxlength="100" value="${esc(activity?.title)}" placeholder="Michael Jackson ONE – Cirque du Soleil" />`)}
-      ${field("Date", `<input name="date" type="date" required min="${esc(trip.startDate)}" max="${esc(trip.endDate)}" value="${esc(activity?.date || trip.startDate)}" />`)}
-      <div class="two">
-        ${timeField("time", "Starts", activity?.time)}
-        ${timeField("endTime", "Ends", activity?.endTime)}
-      </div>
+      <label class="check"><input type="checkbox" name="dateTbd" ${unscheduled || (activity && !activity.date) ? "checked" : ""} /><span>Date TBD<small>Keep this in Unscheduled until you choose a day.</small></span></label>
+      <fieldset class="schedule-fields" data-schedule aria-label="Schedule">
+        ${field("Date", `<input name="date" type="date" required min="${esc(trip.startDate)}" max="${esc(trip.endDate)}" value="${esc(activity?.date || trip.startDate)}" />`)}
+        <div class="two">
+          ${timeField("time", "Starts", activity?.time)}
+          ${timeField("endTime", "Ends", activity?.endTime)}
+        </div>
+      </fieldset>
       ${field("Where", `<input name="location" maxlength="120" value="${esc(activity?.location)}" placeholder="Mandalay Bay" />`)}
       ${field("Map link (optional)", `<input name="mapUrl" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="500" value="${esc(activity?.mapUrl)}" placeholder="Paste a Google or Apple Maps link" />`)}
       <label class="check"><input type="checkbox" name="adultOnly" ${activity?.adultOnly ? "checked" : ""} /><span>Adults only (21+)<small>Takes everyone under 21 off this activity.</small></span></label>
@@ -464,7 +479,7 @@ function activitySheet(trip, activity) {
           : `<p class="muted" style="margin:0">Nobody is on this trip yet. Add people first, then choose who is going.</p>`
       }
       <div style="height:12px"></div>
-      ${field("Notes", `<textarea name="notes" rows="3" placeholder="Tickets, seats, where to meet…">${esc(activity?.notes)}</textarea>`)}`,
+      ${field("Notes", `<textarea name="notes" rows="3" placeholder="Weather dependent, prefer morning, tickets, where to meet…">${esc(activity?.notes)}</textarea>`)}`,
     remove: activity && {
       label: "Delete",
       confirm: `Delete "${activity.title}"?`,
@@ -472,6 +487,14 @@ function activitySheet(trip, activity) {
         updateTrip(trip.id, (t) => ({ ...t, activities: t.activities.filter((a) => a.id !== activity.id) })),
     },
     onReady(form) {
+      const dateTbd = form.elements.dateTbd;
+      const schedule = form.querySelector("[data-schedule]");
+      const syncSchedule = () => {
+        schedule.hidden = dateTbd.checked;
+        schedule.disabled = dateTbd.checked;
+      };
+      dateTbd.addEventListener("change", syncSchedule);
+      syncSchedule();
       const adultBox = form.elements.adultOnly;
       const allowed = (id) => !adultBox.checked || !minors.has(id);
       const sync = () => {
@@ -516,9 +539,9 @@ function activitySheet(trip, activity) {
       const saved = {
         id: activity?.id ?? randomId(),
         title: values.title,
-        date: values.date,
-        time: values.time,
-        endTime: values.endTime,
+        date: values.dateTbd === "on" ? "" : values.date,
+        time: values.dateTbd === "on" ? "" : values.time,
+        endTime: values.dateTbd === "on" ? "" : values.endTime,
         location: values.location,
         mapUrl,
         notes: values.notes,
@@ -530,6 +553,29 @@ function activitySheet(trip, activity) {
         activities: activity
           ? t.activities.map((a) => (a.id === activity.id ? saved : a))
           : [...t.activities, saved],
+      }));
+    },
+  });
+}
+
+function scheduleActivitySheet(trip, activity) {
+  openSheet({
+    title: "Schedule activity",
+    submit: "Schedule",
+    body: `
+      <p class="schedule-title pre">${esc(activity.title)}</p>
+      ${field("Date", `<input name="date" type="date" required min="${esc(trip.startDate)}" max="${esc(trip.endDate)}" value="${esc(trip.startDate)}" />`)}
+      <div class="two">
+        ${timeField("time", "Starts")}
+        ${timeField("endTime", "Ends")}
+      </div>
+      <p class="hint">Leave times blank for any time that day. You can move it back to Unscheduled by editing it and choosing Date TBD.</p>`,
+    onSubmit(values) {
+      updateTrip(trip.id, (t) => ({
+        ...t,
+        activities: t.activities.map((a) => a.id === activity.id
+          ? { ...a, date: values.date, time: values.time, endTime: values.endTime }
+          : a),
       }));
     },
   });
@@ -558,6 +604,8 @@ const actions = {
   "add-lodging": (trip) => lodgingSheet(trip),
   "edit-lodging": (trip, { id }) => lodgingSheet(trip, trip.lodging.find((l) => l.id === id)),
   "add-activity": (trip) => activitySheet(trip),
+  "add-unscheduled": (trip) => activitySheet(trip, undefined, true),
+  "schedule-activity": (trip, { id }) => scheduleActivitySheet(trip, trip.activities.find((a) => a.id === id)),
   "edit-activity": (trip, { id }) => activitySheet(trip, trip.activities.find((a) => a.id === id)),
   "create-share": (trip) => setShare(trip, randomId(16)),
   "new-share"(trip) {

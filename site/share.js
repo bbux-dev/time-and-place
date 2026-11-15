@@ -82,7 +82,7 @@ function activityRow(activity, when, live) {
     ? `<a href="${esc(map)}" target="_blank" rel="noopener noreferrer" style="overflow-wrap:anywhere">${esc(activity.location || map.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</a>`
     : esc(activity.location);
   return `<div class="act${mine ? "" : " dim"}${when}">
-    <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
+    <div class="time">${activity.date ? `${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}` : "Date TBD"}</div>
     <div>
       <div class="name">${esc(activity.title)}
         ${live ? `<span class="tag solid">${LIVE[live]}</span>` : ""}
@@ -100,6 +100,7 @@ function render() {
   const today = localDate();
   const live = liveStatus(trip.activities, today, localTime(), me);
   const done = finishedToday(trip.activities, today, localTime());
+  const unscheduled = trip.activities.filter((a) => !a.date);
   const mineCount = me ? trip.activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
   const days = activitiesByDay(trip.activities)
     .map((day) => {
@@ -133,7 +134,11 @@ function render() {
     ${lodgingCard(trip.lodging)}
     ${pills}
     <div class="head section-head"><span class="label">Itinerary</span></div>
-    ${days || `<p class="empty">Nothing planned yet. Check back soon.</p>`}`;
+    ${days || `<p class="empty">No scheduled activities yet. Check back soon.</p>`}
+    ${unscheduled.length ? `<section aria-label="Unscheduled activities">
+      <div class="head section-head"><span class="label">Unscheduled · ${unscheduled.length}</span></div>
+      ${unscheduled.map((a) => activityRow(a, " unscheduled")).join("")}
+    </section>` : ""}`;
   document.title = trip.name;
 }
 

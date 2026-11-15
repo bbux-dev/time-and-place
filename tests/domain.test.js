@@ -85,6 +85,28 @@ test("activities group by day in time order, untimed first", () => {
   assert.deepEqual(days[1].items.map((a) => a.title), ["Cirque", "Piano bar"]);
 });
 
+test("unscheduled activities stay out of the dated itinerary and live status", () => {
+  const hike = { id: "hike", title: "Red Rocks hike", date: "", time: "09:00", endTime: "12:00", attendeeIds: ["dad"] };
+  const activities = [hike, ...trip.activities];
+  assert.deepEqual(activitiesByDay(activities), activitiesByDay(trip.activities));
+  assert.deepEqual(activitiesByDay([hike]), []);
+  assert.equal(liveStatus(activities, "2027-06-13", "10:00").has(hike.id), false);
+  assert.equal(finishedToday(activities, "2027-06-13", "23:00").has(hike.id), false);
+  assert.equal(activities[0], hike, "grouping leaves the original list intact");
+});
+
+test("unscheduled activities survive validation, sharing and export/import", () => {
+  const hike = {
+    id: "hike", title: "Red Rocks hike", date: "", time: "", endTime: "",
+    location: "Red Rocks", notes: "Weather dependent; prefer morning", attendeeIds: ["dad", "mom"],
+  };
+  const flexible = { ...store, trips: [{ ...trip, activities: [...trip.activities, hike] }] };
+  assert.equal(isValidStore(flexible), true);
+  assert.deepEqual(sharedView(flexible, TOKEN).trip.activities.at(-1), hike);
+  const imported = parseImport(JSON.stringify(exportData(flexible)));
+  assert.deepEqual(imported.trips[0].activities.at(-1), hike);
+});
+
 test("attendance reports who is and is not going", () => {
   const members = people.slice(0, 3);
   assert.equal(attendance(trip.activities[1], members).everyone, true);

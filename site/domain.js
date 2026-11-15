@@ -119,8 +119,9 @@ export function enforceAdultOnly(store) {
   };
 }
 
+/** Dated itinerary only. An empty date means the activity is still unscheduled. */
 export function activitiesByDay(activities) {
-  const sorted = [...activities].sort(
+  const sorted = activities.filter((a) => a.date).sort(
     (a, b) =>
       a.date.localeCompare(b.date) ||
       (a.time || "").localeCompare(b.time || "") ||

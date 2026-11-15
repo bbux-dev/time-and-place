@@ -24,6 +24,8 @@ pnpm check      # syntax
 
 - **Admin** (`/`): HTTP basic auth. Create a trip, tap saved people onto it, add lodging and activities.
   A new activity starts with everyone on the trip; "Adults only (21+)" takes the under-21 people off.
+  Choose **Date TBD** to keep an activity in **Unscheduled**, visible on both trip views. Use **Schedule**
+  to choose a day and optional times, or edit a dated activity and choose **Date TBD** to move it back.
 - **Share link** (`/s/<token>`): no login. Shows one trip and the first names on it. The token is random,
   made when you press **Create share link**; **New link** or **Stop sharing** kills the old one.
 - **PWA**: both pages can be added to a phone's home screen. A shared itinerary installs as its own app and,
