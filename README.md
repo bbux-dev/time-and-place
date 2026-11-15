@@ -3,6 +3,8 @@
 Plan a group trip: who is coming, where you are staying, and who is going to which activity.
 One admin edits behind a login; everyone else gets a read-only share link.
 
+See [CHANGES.md](CHANGES.md) for release history.
+
 Plain HTML, CSS and JavaScript with no build step. Runs locally on Node, and on Cloudflare at
 **https://trips.bxtn.dev** (a Worker plus one JSON object in R2).
 
