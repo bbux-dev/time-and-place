@@ -20,6 +20,7 @@ import {
   removePersonFromTrip,
   sharedView,
   TOKEN_RE,
+  webLink,
 } from "../site/domain.js";
 
 const people = [
@@ -180,4 +181,14 @@ test("today's finished activities are identified", () => {
   assert.deepEqual(at("15:00"), ["brunch"], "no end time: not finished until something later starts");
   assert.deepEqual(at("19:00"), ["brunch", "walk"]);
   assert.deepEqual(at("23:59"), ["brunch", "show", "walk"], "past-midnight and untimed ones never finish today");
+});
+
+test("map links are tidied, and anything that is not a web address is dropped", () => {
+  assert.equal(webLink("https://maps.app.goo.gl/AbC123"), "https://maps.app.goo.gl/AbC123");
+  assert.equal(webLink("  maps.apple.com/?q=Mandalay+Bay "), "https://maps.apple.com/?q=Mandalay+Bay");
+  assert.equal(webLink("http://example.com/x"), "http://example.com/x");
+  for (const bad of ["", "   ", "javascript:alert(1)", "JavaScript://x.y/%0aalert(1)", "data:text/html,hi", "geo:36.1,-115.1", "just some words", "nodots"]) {
+    assert.equal(webLink(bad), "", bad);
+  }
+  assert.equal(webLink(undefined), "");
 });

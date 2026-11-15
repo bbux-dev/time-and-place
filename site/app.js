@@ -19,6 +19,7 @@ import {
   randomId,
   removePersonFromTrip,
   tripPeople,
+  webLink,
 } from "./domain.js";
 
 const screen = document.querySelector("#screen");
@@ -174,7 +175,7 @@ function activityRow(activity, members, when = "") {
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
     <div>
       <div class="name">${esc(activity.title)} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
-      ${activity.location ? `<div class="muted">${esc(activity.location)}</div>` : ""}
+      ${activity.location || activity.mapUrl ? `<div class="muted">${esc(activity.location)}${activity.mapUrl ? ` <span class="tag off">Map link</span>` : ""}</div>` : ""}
       <div class="who">${whoLine(activity, members)}</div>
     </div>
   </button>`;
@@ -435,6 +436,7 @@ function activitySheet(trip, activity) {
         ${timeField("endTime", "Ends", activity?.endTime)}
       </div>
       ${field("Where", `<input name="location" maxlength="120" value="${esc(activity?.location)}" placeholder="Mandalay Bay" />`)}
+      ${field("Map link (optional)", `<input name="mapUrl" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="500" value="${esc(activity?.mapUrl)}" placeholder="Paste a Google or Apple Maps link" />`)}
       <label class="check"><input type="checkbox" name="adultOnly" ${activity?.adultOnly ? "checked" : ""} /><span>Adults only (21+)<small>Takes everyone under 21 off this activity.</small></span></label>
       <div class="head" style="margin-bottom:6px">
         <span class="legend" style="margin:0" data-count></span>
@@ -496,6 +498,8 @@ function activitySheet(trip, activity) {
       sync();
     },
     onSubmit(values) {
+      const mapUrl = webLink(values.mapUrl);
+      if (values.mapUrl && !mapUrl) return "That map link isn't a web address. Paste the link from your maps app's Share button.";
       const adultOnly = values.adultOnly === "on";
       const ids = members.map((p) => p.id).filter((id) => selected.has(id));
       const saved = {
@@ -505,6 +509,7 @@ function activitySheet(trip, activity) {
         time: values.time,
         endTime: values.endTime,
         location: values.location,
+        mapUrl,
         notes: values.notes,
         adultOnly,
         attendeeIds: adultOnly ? adultsOnly(ids, store.people) : ids,

@@ -361,6 +361,38 @@ a {
   font-size: 14px;
   margin-top: 4px;
 }
+/* A card with a map link expands to show it. */
+details.act {
+  display: block;
+}
+details.act > summary {
+  display: grid;
+  grid-template-columns: 74px 1fr auto;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+details.act > summary::-webkit-details-marker {
+  display: none;
+}
+.chev {
+  align-self: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface2);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+details[open] > summary .chev {
+  transform: rotate(90deg);
+}
+.more {
+  margin: 12px 0 0 86px;
+}
+
 /* Today stands out; days that are over step back. */
 .day.today {
   color: var(--accent);

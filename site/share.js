@@ -13,6 +13,7 @@ import {
   localDate,
   localTime,
   mapsUrl,
+  webLink,
 } from "./domain.js";
 
 const screen = document.querySelector("#screen");
@@ -29,6 +30,7 @@ navigator.serviceWorker?.register("/share-sw.js", { scope: "/s/" }).catch(() => 
 let data = null;
 let me = null; // person id, or null for "everyone"
 let offline = false;
+const expanded = new Set(); // activity ids left open, kept across the minute-by-minute redraw
 
 function remember(id) {
   try {
@@ -75,7 +77,8 @@ function activityRow(activity, when, live) {
         ? names(going)
         : `Everyone <span class="muted">except ${names(notGoing)}</span>`;
   }
-  return `<div class="act${mine ? "" : " dim"}${when}">
+  const map = webLink(activity.mapUrl);
+  const body = `
     <div class="time">${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}</div>
     <div>
       <div class="name">${esc(activity.title)}
@@ -85,8 +88,14 @@ function activityRow(activity, when, live) {
       ${activity.location ? `<div class="muted">${esc(activity.location)}</div>` : ""}
       <div class="who">${who}</div>
       ${activity.notes ? `<div class="pre muted" style="margin-top:4px">${esc(activity.notes)}</div>` : ""}
-    </div>
-  </div>`;
+    </div>`;
+  const classes = `act${mine ? "" : " dim"}${when}`;
+  if (!map) return `<div class="${classes}">${body}</div>`;
+  // With a map link the card expands: tap it to reveal the link.
+  return `<details class="${classes}" data-id="${esc(activity.id)}"${expanded.has(activity.id) ? " open" : ""}>
+    <summary>${body}<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg></span></summary>
+    <div class="more"><a class="btn small primary" href="${esc(map)}" target="_blank" rel="noopener noreferrer">Open map</a></div>
+  </details>`;
 }
 
 function render() {
@@ -131,6 +140,14 @@ function render() {
   document.title = trip.name;
 }
 
+screen.addEventListener(
+  "toggle",
+  (event) => {
+    const id = event.target.dataset?.id;
+    if (id) event.target.open ? expanded.add(id) : expanded.delete(id);
+  },
+  true,
+);
 screen.addEventListener("click", (event) => {
   const pill = event.target.closest("[data-me]");
   if (!pill) return;

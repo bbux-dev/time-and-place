@@ -225,6 +225,21 @@ export function esc(value) {
   );
 }
 
+/**
+ * Tidies a pasted link: adds https:// when missing and returns "" unless the result is a
+ * plain web address. Used before saving and again before showing, so a link can never run script.
+ */
+export function webLink(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  try {
+    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".") ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 export function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
