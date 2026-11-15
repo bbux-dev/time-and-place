@@ -24,11 +24,12 @@ pnpm check      # syntax
 
 - **Admin** (`/`): HTTP basic auth. Create a trip, tap saved people onto it, add lodging and activities.
   A new activity starts with everyone on the trip; "Adults only (21+)" takes the under-21 people off.
-  Check **Dining** to show a food icon beside the activity title on the admin and shared itineraries.
-  The **All / Activities / Dining** filters beside Itinerary show everything, non-dining activities,
-  or dining. The selection also filters Unscheduled items.
+  Toggle the **Dining** and **Museum** pills to show food or museum icons beside the activity title on
+  admin and shared itineraries. The pills can be selected independently.
+  The **All / Activities / Dining / Museum** filters beside Itinerary show everything, ordinary activities
+  without either type, meals, or museum visits. The selection also filters Unscheduled items.
   **From Maps** opens an unscheduled activity with a place-link lookup. **Fill details** suggests the
-  name, address, map link, and Dining setting; review and save normally. This prototype reads Google
+  name, address, map link, and Dining/Museum settings; review and save normally. This prototype reads Google
   Maps page and place-preview metadata without an API key. Its format can change; if details are
   unavailable, the form stays editable for manual entry. No activity is saved by the lookup itself.
   If Google blocks the hosted preview, the importer uses the place name from the resolved link when
@@ -67,6 +68,7 @@ Cloudflare only, through SST: one Worker on `trips.bxtn.dev` and one R2 bucket. 
 - `server.mjs`: local Node entry, storing to a file.
 - `sst.config.ts`, `scripts/`: infrastructure, preflight, deploy and hosted checks.
 - `site/domain.js`: trip rules and formatting, shared by both pages and the server.
+- `site/activity-types.js`: shared type labels, icons, and filter options.
 - `site/app.js` + `index.html`: the admin page.
 - `site/share.js` + `share.html`: the shared itinerary.
 - `site/sample.json`: fictional public sample data, separate from the trip database.

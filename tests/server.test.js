@@ -94,7 +94,7 @@ test("the share link works without a login and shows only that trip", async () =
   const page = await fetch(`${base}/s/${TOKEN}`);
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("x-robots-tag"), "noindex, nofollow");
-  for (const file of ["/styles.css", "/share.js", "/domain.js", "/share-sw.js", "/manifest.webmanifest"]) {
+  for (const file of ["/styles.css", "/share.js", "/activity-types.js", "/domain.js", "/share-sw.js", "/manifest.webmanifest"]) {
     assert.equal((await fetch(base + file)).status, 200, file);
   }
   const res = await fetch(`${base}/api/shared/${TOKEN}`);

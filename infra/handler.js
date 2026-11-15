@@ -21,6 +21,7 @@ const PUBLIC_FILES = new Set([
   "/styles.css",
   "/share.js",
   "/domain.js",
+  "/activity-types.js",
   "/icon.svg",
   "/icon-192.png",
   "/icon-512.png",

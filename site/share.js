@@ -16,6 +16,7 @@ import {
   mapsUrl,
   webLink,
 } from "./domain.js";
+import { ACTIVITY_FILTERS, activityTypeIcons } from "./activity-types.js";
 
 const screen = document.querySelector("#screen");
 const isSample = /^\/sample\/?$/.test(location.pathname);
@@ -90,7 +91,7 @@ function activityRow(activity, when, live) {
     <div class="time">${activity.date ? `${esc(fmtTime(activity.time) || "Any time")}${activity.endTime ? `<small>to ${esc(fmtTime(activity.endTime))}</small>` : ""}` : "Date TBD"}</div>
     <div>
       <div class="name">${esc(activity.title)}
-        ${activity.dining === true ? `<svg class="dining-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Dining"><title>Dining</title><path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v19M20 22V3c-4 0-6 5-6 9h6" /></svg>` : ""}
+        ${activityTypeIcons(activity)}
         ${live ? `<span class="tag solid">${LIVE[live]}</span>` : ""}
         ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}
         ${mine ? "" : `<span class="tag off">Not you</span>`}</div>
@@ -109,7 +110,7 @@ function render() {
   const activities = filterActivities(trip.activities, activityFilter);
   const unscheduled = activities.filter((a) => !a.date);
   const mineCount = me ? activities.filter((a) => a.attendeeIds.includes(me)).length : 0;
-  const category = activityFilter === "dining" ? "dining activities" : "activities";
+  const category = activityFilter === "dining" ? "dining activities" : activityFilter === "museum" ? "museum visits" : "activities";
   const days = activitiesByDay(activities)
     .map((day) => {
       // Keep the fictional itinerary readable even after its sample dates have passed.
@@ -146,7 +147,7 @@ function render() {
     <div class="head section-head itinerary-head">
       <span class="label">Itinerary</span>
       <div class="activity-filters" role="group" aria-label="Activity type">
-        ${[["all", "All"], ["activities", "Activities"], ["dining", "Dining"]].map(([value, label]) => `<button class="activity-filter" data-activity-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
+        ${ACTIVITY_FILTERS.map(([value, label]) => `<button class="activity-filter" data-activity-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
       </div>
     </div>
     ${days || `<p class="empty">${activityFilter === "all" ? "No scheduled activities yet. Check back soon." : `No ${category} scheduled.`}</p>`}

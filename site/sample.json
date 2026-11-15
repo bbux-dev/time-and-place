@@ -54,6 +54,17 @@
         "attendeeIds": ["homer", "marge", "bart", "lisa", "maggie"]
       },
       {
+        "id": "shire-museum",
+        "title": "Hobbiton history museum",
+        "museum": true,
+        "date": "2027-06-13",
+        "time": "14:00",
+        "endTime": "15:00",
+        "location": "Hobbiton village hall",
+        "notes": "Lisa wants to read every label. Marge is coming for the old patchwork quilts, and Maggie gets the stroller tour.",
+        "attendeeIds": ["marge", "lisa", "maggie"]
+      },
+      {
         "id": "pony-supper",
         "dining": true,
         "title": "Date night at the Prancing Pony",

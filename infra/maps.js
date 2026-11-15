@@ -90,6 +90,7 @@ export function parseMapsPlace(html, pageUrl, previewText = "") {
     location: (location || title).slice(0, 120),
     category: categories.join(", ").slice(0, 160),
     dining: categories.length ? categories.some((category) => FOOD_CATEGORY.test(category)) : null,
+    museum: categories.length ? categories.some((category) => /\bmuseum\b/i.test(category)) : null,
   };
 }
 

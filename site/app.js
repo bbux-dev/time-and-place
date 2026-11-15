@@ -24,6 +24,7 @@ import {
   tripPeople,
   webLink,
 } from "./domain.js";
+import { ACTIVITY_FILTERS, ACTIVITY_TYPES, activityTypeIcon, activityTypeIcons } from "./activity-types.js";
 
 const screen = document.querySelector("#screen");
 const overlay = document.querySelector("#overlay");
@@ -201,14 +202,14 @@ function whoLine(activity, members) {
 
 function activityRow(activity, members, when = "") {
   const details = `
-      <div class="name">${esc(activity.title)} ${activity.dining === true ? `<svg class="dining-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Dining"><title>Dining</title><path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v19M20 22V3c-4 0-6 5-6 9h6" /></svg>` : ""} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
+      <div class="name">${esc(activity.title)} ${activityTypeIcons(activity)} ${activity.adultOnly ? `<span class="tag">21+</span>` : ""}</div>
       ${activity.location || activity.mapUrl ? `<div class="muted">${esc(activity.location)}${activity.mapUrl ? ` <span class="tag off">Map link</span>` : ""}</div>` : ""}
       <div class="who">${whoLine(activity, members)}</div>
       ${!activity.date && activity.notes ? `<div class="pre muted activity-notes">${esc(activity.notes)}</div>` : ""}`;
   if (!activity.date) {
     return `<div class="act unscheduled">
       <div class="time">Date TBD<button class="btn small schedule-button" data-action="schedule-activity" data-id="${esc(activity.id)}" aria-label="Schedule ${esc(activity.title)}">Schedule</button></div>
-      <button class="activity-details" data-action="edit-activity" data-id="${esc(activity.id)}" aria-label="Edit ${esc(activity.title)}${activity.dining === true ? " (Dining)" : ""}">${details}</button>
+      <button class="activity-details" data-action="edit-activity" data-id="${esc(activity.id)}" aria-label="Edit ${esc(activity.title)}${ACTIVITY_TYPES.filter(({ id }) => activity[id] === true).map(({ label }) => ` (${label})`).join("")}">${details}</button>
     </div>`;
   }
   return `<button class="act${when}" data-action="edit-activity" data-id="${esc(activity.id)}">
@@ -223,7 +224,7 @@ function tripView(trip) {
   const done = finishedToday(trip.activities, today, localTime());
   const activities = filterActivities(trip.activities, activityFilter);
   const unscheduled = activities.filter((a) => !a.date);
-  const category = activityFilter === "dining" ? "dining activities" : "activities";
+  const category = activityFilter === "dining" ? "dining activities" : activityFilter === "museum" ? "museum visits" : "activities";
   const days = activitiesByDay(activities)
     .map((day) => {
       const when = day.date === today ? " today" : day.date < today ? " past" : "";
@@ -247,7 +248,7 @@ function tripView(trip) {
     <div class="head section-head itinerary-head">
       <span class="label">Itinerary</span>
       <div class="activity-filters" role="group" aria-label="Activity type">
-        ${[["all", "All"], ["activities", "Activities"], ["dining", "Dining"]].map(([value, label]) => `<button class="activity-filter" data-action="filter-activities" data-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
+        ${ACTIVITY_FILTERS.map(([value, label]) => `<button class="activity-filter" data-action="filter-activities" data-filter="${value}" aria-pressed="${activityFilter === value}">${label}</button>`).join("")}
       </div>
       <span class="row itinerary-actions"><button class="btn small" data-action="add-from-maps">From Maps</button><button class="btn small primary" data-action="add-activity">+ Activity</button></span>
     </div>
@@ -487,10 +488,16 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
         <summary>Fill from Google Maps</summary>
         ${field("Google Maps place link", `<input name="mapsLookup" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="2048" placeholder="https://maps.app.goo.gl/…" />`)}
         <button type="button" class="btn small" data-lookup-map>Fill details</button>
-        <p class="hint" role="status" data-lookup-status>Paste a place link to fill the name, address, and Dining option.</p>
+        <p class="hint" role="status" data-lookup-status>Paste a place link to fill the name, address, and activity type.</p>
       </details>` : ""}
       ${field("Activity", `<input name="title" required maxlength="100" value="${esc(activity?.title)}" placeholder="Michael Jackson ONE – Cirque du Soleil" />`)}
-      <label class="check"><input type="checkbox" name="dining" ${activity?.dining === true || (!activity && activityFilter === "dining") ? "checked" : ""} /><span>Dining</span></label>
+      <fieldset class="activity-types">
+        <legend class="legend">Activity type</legend>
+        <div class="pills">${ACTIVITY_TYPES.map(({ id, label }) => `<label class="pill activity-type-pill">
+          <input type="checkbox" name="${id}" ${activity?.[id] === true || (!activity && activityFilter === id) ? "checked" : ""} />
+          ${activityTypeIcon(id, true)}<span>${label}</span>
+        </label>`).join("")}</div>
+      </fieldset>
       <label class="check"><input type="checkbox" name="dateTbd" ${unscheduled || (activity && !activity.date) ? "checked" : ""} /><span>Date TBD<small>Keep this in Unscheduled until you choose a day.</small></span></label>
       <fieldset class="schedule-fields" data-schedule aria-label="Schedule">
         ${field("Date", `<input name="date" type="date" required min="${esc(trip.startDate)}" max="${esc(trip.endDate)}" value="${esc(activity?.date || trip.startDate)}" />`)}
@@ -559,11 +566,13 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
           form.elements.title.value = place.title;
           form.elements.location.value = place.location;
           form.elements.mapUrl.value = place.mapUrl;
-          if (typeof place.dining === "boolean") form.elements.dining.checked = place.dining;
+          for (const { id } of ACTIVITY_TYPES) {
+            if (typeof place[id] === "boolean") form.elements[id].checked = place[id];
+          }
           if (place.warning) showFormError(form, place.warning);
           status.textContent = place.category
-            ? `Found ${place.category}. Review the details and Dining option, then save.`
-            : "Place name found. Check the address and Dining option before saving.";
+            ? `Found ${place.category}. Review the details and activity type, then save.`
+            : "Place name found. Check the address and activity type before saving.";
         } catch (error) {
           status.textContent = "";
           if (overlay.open && overlay.firstElementChild === form) {
@@ -635,6 +644,7 @@ function activitySheet(trip, activity, unscheduled = false, fromMaps = false) {
         mapUrl,
         notes: values.notes,
         dining: values.dining === "on",
+        museum: values.museum === "on",
         adultOnly,
         attendeeIds: adultOnly ? adultsOnly(ids, store.people) : ids,
       };

@@ -21,7 +21,7 @@ async function verify() {
   const write = await get('/api/store', { method: 'PUT', body: '{}', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'trip-planner' } });
   assert.equal(write.status, 401, 'Saving needs the admin login');
 
-  for (const path of ['/styles.css', '/share.js', '/domain.js', '/sample.json', '/share-sw.js', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png']) {
+  for (const path of ['/styles.css', '/share.js', '/activity-types.js', '/domain.js', '/sample.json', '/share-sw.js', '/manifest.webmanifest', '/icon-192.png', '/apple-touch-icon.png']) {
     const response = await get(path);
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get('cache-control') || '', /no-transform/, path);

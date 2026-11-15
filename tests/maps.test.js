@@ -23,12 +23,21 @@ test("Maps place previews distinguish the two supplied dining and non-dining exa
   assert.equal(dining.location, "2777 S Las Vegas Blvd, Las Vegas, NV 89109");
   assert.equal(dining.category, "Restaurant");
   assert.equal(dining.dining, true);
+  assert.equal(dining.museum, false);
   const activity = parseMapsPlace(HTML, PAGE, preview(
     "Hoover Dam Visitor Center & Tours", ["81 Hoover Dam Access Rd", "Boulder City, NV 89005"], "Visitor center",
   ));
   assert.equal(activity.title, "Hoover Dam Visitor Center & Tours");
   assert.equal(activity.location, "81 Hoover Dam Access Rd, Boulder City, NV 89005");
   assert.equal(activity.dining, false);
+  assert.equal(activity.museum, false);
+});
+
+test("Maps categories identify a museum without marking it as dining", () => {
+  const museum = parseMapsPlace(HTML, PAGE, preview("The Mob Museum", ["300 Stewart Ave", "Las Vegas, NV 89101"], "History museum"));
+  assert.equal(museum.title, "The Mob Museum");
+  assert.equal(museum.museum, true);
+  assert.equal(museum.dining, false);
 });
 
 test("ordinary metadata handles attribute order and HTML entities", () => {
@@ -118,6 +127,7 @@ test("Google challenges preserve the resolved place name without following the c
     assert.equal(calls, 2);
     assert.equal(result.title, "The Mob Museum");
     assert.equal(result.dining, null, "no category is invented from a blocked preview");
+    assert.equal(result.museum, null);
     assert.equal(result.mapUrl, SHORT);
     assert.match(result.warning, /blocked the full preview/);
   }

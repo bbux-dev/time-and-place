@@ -354,11 +354,18 @@ a {
   background: var(--surface);
   color: var(--accent);
 }
-.dining-icon {
+.activity-type-icon {
   width: 17px;
   height: 17px;
   vertical-align: -3px;
   color: var(--accent);
+}
+@media (max-width: 360px) {
+  .activity-filters {
+    order: 1;
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 .day {
   font-weight: 800;
@@ -474,6 +481,39 @@ a {
 }
 
 /* Sheets */
+.activity-types {
+  border: 0;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.activity-type-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.activity-type-pill input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.activity-type-pill:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.activity-type-pill:has(input:checked) .activity-type-icon {
+  color: inherit;
+}
+.activity-type-pill:has(input:focus-visible) {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
 .map-import {
   margin-bottom: 16px;
   padding: 12px;

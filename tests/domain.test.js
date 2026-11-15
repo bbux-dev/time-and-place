@@ -137,11 +137,26 @@ test("activity filters include older activities and unscheduled meals without ch
     { id: "meal", date: "2027-06-13", dining: true },
     { id: "hike", dining: false },
     { id: "maybe-dinner", date: "", dining: true },
+    { id: "museum", date: "2027-06-13", museum: true },
+    { id: "maybe-museum", date: "", museum: true },
+    { id: "museum-cafe", dining: true, museum: true },
   ];
   assert.deepEqual(filterActivities(activities, "all"), activities);
   assert.deepEqual(filterActivities(activities, "activities").map((a) => a.id), ["show", "hike"]);
-  assert.deepEqual(filterActivities(activities, "dining").map((a) => a.id), ["meal", "maybe-dinner"]);
-  assert.equal(activities.length, 4);
+  assert.deepEqual(filterActivities(activities, "dining").map((a) => a.id), ["meal", "maybe-dinner", "museum-cafe"]);
+  assert.deepEqual(filterActivities(activities, "museum").map((a) => a.id), ["museum", "maybe-museum", "museum-cafe"]);
+  assert.equal(activities.length, 7);
+});
+
+test("museum flags survive sharing and export/import while older activities remain valid", () => {
+  for (const museum of [true, false]) {
+    const marked = { ...store, trips: [{ ...trip, activities: [{ ...trip.activities[0], museum }] }] };
+    assert.equal(isValidStore(marked), true);
+    assert.equal(sharedView(marked, TOKEN).trip.activities[0].museum, museum);
+    assert.equal(parseImport(JSON.stringify(exportData(marked))).trips[0].activities[0].museum, museum);
+  }
+  assert.equal(isValidStore(store), true);
+  assert.equal(isValidStore({ ...store, trips: [{ ...trip, activities: [{ ...trip.activities[0], museum: "true" }] }] }), false);
 });
 
 test("a share link exposes one trip and only the names of people on it", () => {
