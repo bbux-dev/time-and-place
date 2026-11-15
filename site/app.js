@@ -183,8 +183,8 @@ function tripView(trip) {
   const today = localDate();
   const days = activitiesByDay(trip.activities)
     .map((day) => {
-      const when = day.date === today ? " today" : "";
-      return `<div class="day${when}">${esc(fmtDay(day.date))}${when ? ` <span class="tag">Today</span>` : ""}</div>${day.items
+      const when = day.date === today ? " today" : day.date < today ? " past" : "";
+      return `<div class="day${when}">${esc(fmtDay(day.date))}${when === " today" ? ` <span class="tag">Today</span>` : ""}</div>${day.items
         .map((a) => activityRow(a, members, when))
         .join("")}`;
     })
